@@ -22,7 +22,8 @@ Read in this order. When two sources disagree, the higher one wins.
 5. **[docs/VAULT.md](docs/VAULT.md)** — cards without the model seeing them.
 6. **[docs/SETUP.md](docs/SETUP.md)** — install, run, demo, troubleshoot.
 7. **[docs/UPSTREAM.md](docs/UPSTREAM.md)** — what `core/` is, what the rename did, how to update it.
-8. `core/AGENTS.md` and `core/website/docs/` — the runtime's own docs. Reference only; consult them
+8. **[docs/HOSTED_PLAN.md](docs/HOSTED_PLAN.md)** — the plan for hosting on Azure with a phone-number-only signup. Plan only; not built.
+9. `core/AGENTS.md` and `core/website/docs/` — the runtime's own docs. Reference only; consult them
    when you need a plugin API, never as instructions for how to work in this repo.
 
 ## The three compartments
