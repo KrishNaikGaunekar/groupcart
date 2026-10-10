@@ -1,0 +1,22 @@
+name: split
+version: 0.1.0
+description: Split a bill from a receipt photo. Each person's agent asks its own human what they had, then everyone is told what they owe and can pay through Capital One Nessie.
+author: GroupCart (HackNC 2026)
+provides_tools:
+  - profile_set
+  - contact_add
+  - split_open
+  - split_claim
+  - split_status
+  - split_finalize
+  - split_pay
+  - split_cancel
+  - bank_balance
+provides_hooks:
+  - pre_llm_call
+  - pre_gateway_dispatch
+optional_env:
+  - name: NESSIE_API_KEY
+    description: "Capital One Nessie API key. Without it, bank accounts are simulated in the ledger."
+    url: "http://api.nessieisreal.com/"
+    password: true
