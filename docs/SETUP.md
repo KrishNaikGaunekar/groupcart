@@ -38,10 +38,23 @@ GROUPCART_SPLIT_DRY_RUN=1 GROUPCART_SESSION_USER_ID=+19195550001 ./gc chat
 ./gc gateway run
 ```
 
-Wait for `✓ photon connected`. Then, from each person's phone:
+Wait for `✓ photon connected`.
 
-1. Text the project's Photon number: "hi, I'm Bob". Everyone has to do this once; a shared Photon
-   line can only text people who texted it first.
+**Give each person an agent first.** On Photon's shared lines nobody can reach the agent until their
+phone number is registered on the project. Registering assigns them their own number to text:
+
+```bash
+python3 scripts/photon_users.py add +19195551234 Bob Smith
+```
+
+```bash
+python3 scripts/photon_users.py list
+```
+
+Then, from each person's phone:
+
+1. Text the number the script printed for them: "hi, I'm Bob". Everyone has to do this once; a shared
+   Photon line can only text people who texted it first.
 2. Optional: "my venmo is bob-pays".
 3. The payer sends a receipt photo and says who it was with.
 
