@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Run the GroupCart runtime (core/) against this repo's own home directory.
+#
+#   ./gc gateway run        start the iMessage agent
+#   ./gc chat               talk to the agent in the terminal
+#   ./gc split room --watch watch the agents talk to each other
+#
+# State lives in .groupcart-home/ (gitignored), so nothing here touches a
+# personal ~/.groupcart or ~/.hermes install. Run scripts/setup.sh once first.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export GROUPCART_HOME="${GROUPCART_HOME:-$ROOT/.groupcart-home}"
+export GROUPCART_RUNTIME_DIR="${GROUPCART_RUNTIME_DIR:-$GROUPCART_HOME/tools}"
+
+if [ -f "$ROOT/.env" ]; then
+    set -a
+    # shellcheck disable=SC1091
+    . "$ROOT/.env"
+    set +a
+fi
+# The repo's .env keeps the names the sponsors use; the runtime has its own.
+export PHOTON_PROJECT_ID="${PHOTON_PROJECT_ID:-${SPECTRUM_PROJECT_ID:-}}"
+export PHOTON_PROJECT_SECRET="${PHOTON_PROJECT_SECRET:-${SPECTRUM_PROJECT_SECRET:-}}"
+GEMINI_API_KEYS="${GEMINI_API_KEYS:-}"
+export GEMINI_API_KEY="${GEMINI_API_KEY:-${GEMINI_API_KEYS%%,*}}"
+
+exec "$ROOT/core/scripts/run-in-groupcart-env" python -m groupcart_cli.main "$@"

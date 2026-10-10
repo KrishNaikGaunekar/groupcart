@@ -1,0 +1,41 @@
+# GroupCart runtime settings. scripts/setup.sh copies this to .groupcart-home/config.yaml.
+# Secrets never go here: they live in the repo-root .env (see .env.example).
+
+model:
+  provider: gemini
+  default: gemini-3.7-flash
+
+# Free-tier Gemini quotas are per model (about 20 requests a day each), so a rate-limited
+# model falls through to the next one instead of failing the conversation.
+fallback_providers:
+  - {provider: gemini, model: gemini-3.8-flash}
+  - {provider: gemini, model: gemini-3-flash-preview}
+  - {provider: gemini, model: gemini-3.6-flash}
+  - {provider: gemini, model: gemini-3.5-flash-lite}
+  - {provider: gemini, model: gemini-3.1-flash-lite}
+
+agent:
+  api_max_retries: 1          # fail over to the next model quickly instead of retrying a spent quota
+  image_input_mode: native    # the model reads receipt photos itself
+
+plugins:
+  enabled:
+    - split
+    - cardvault
+
+tools:
+  tool_search:
+    enabled: "off"            # keep our tool schemas in front of the model instead of behind a search step
+
+browser:
+  backend: "off"              # built-in browser_* tools, which the vault's card fill rides on
+
+platforms:
+  photon:
+    enabled: true
+
+# One runtime serves every friend, so the built-in notebook-style memory would mix people up.
+# Who someone is lives in the split ledger instead (app/split/ledger.py).
+memory:
+  memory_enabled: false
+  user_profile_enabled: false

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import threading
 from typing import Callable, Optional
 
@@ -25,7 +26,9 @@ def flow() -> Flow:
     with _lock:
         if _flow is None:
             ledger = Ledger()
-            _flow = Flow(ledger, Notifier(ledger, runtime_transport), Bank(ledger))
+            # GROUPCART_SPLIT_DRY_RUN=1: nothing is texted; messages only land in the outbox.
+            transport = None if os.environ.get("GROUPCART_SPLIT_DRY_RUN") else runtime_transport
+            _flow = Flow(ledger, Notifier(ledger, transport), Bank(ledger))
         return _flow
 
 
