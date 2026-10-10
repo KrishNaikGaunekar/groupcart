@@ -1,0 +1,12 @@
+name: cardvault
+version: 0.1.0
+description: Lets people hand an agent a payment card over text without the model ever seeing it. Card details are intercepted before the model, stored in the runtime's encrypted vault for the sites the person allowed, scoped to that person, and only filled after the purchase clears a split-or-solo checkout gate.
+author: GroupCart (HackNC 2026)
+provides_tools:
+  - card_request
+  - card_status
+  - card_forget
+  - checkout_start
+provides_hooks:
+  - pre_gateway_dispatch
+  - transform_tool_result
