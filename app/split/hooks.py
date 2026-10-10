@@ -21,8 +21,11 @@ _IMAGE_TYPES = ("image/", "photo")
 
 
 def remember_receipt(event: Any, **_: Any) -> None:
-    """pre_gateway_dispatch: note the sender's latest photo so split_open can forward the receipt."""
+    """pre_gateway_dispatch: make the photo readable, and note it so split_open can forward the receipt."""
     try:
+        from .images import normalize_event_images
+
+        normalize_event_images(event)
         source = getattr(event, "source", None)
         sender = getattr(source, "user_id", None)
         urls, types = list(getattr(event, "media_urls", None) or []), list(getattr(event, "media_types", None) or [])

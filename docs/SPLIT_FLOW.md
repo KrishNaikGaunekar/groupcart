@@ -91,6 +91,12 @@ What is missing is seeing it as a native group thread. Two ways to get that back
 - **Dedicated lines** (Photon Business): give each agent its own runtime profile and number, and add a
   create-group endpoint to the Photon sidecar. That means a patch in `core-patches/`.
 
+## Receipt photos
+
+iPhone camera photos arrive as HEIC, which the runtime does not treat as an image. `images.py` converts
+them to JPEG in the inbound hook, before the model sees the message. Screenshots (PNG) pass through as
+they are. The payer's most recent photo (within an hour) is what `split_open` forwards to the others.
+
 ## Limits to know before the demo
 
 - **People must text their agent first.** A shared Photon line can only message someone who messaged it.
