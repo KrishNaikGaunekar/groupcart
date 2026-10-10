@@ -34,6 +34,12 @@ platforms:
   photon:
     enabled: true
 
+# What an agent reached over iMessage may use. Anyone who texts the number gets an agent
+# (PHOTON_ALLOW_ALL_USERS), so this list is the security boundary: no terminal, no file access,
+# no code execution, no scheduling. Add a toolset here only if a stranger should have it.
+platform_toolsets:
+  photon: [split, cardvault, browser, web, clarify]
+
 # One runtime serves every friend, so the built-in notebook-style memory would mix people up.
 # Who someone is lives in the split ledger instead (app/split/ledger.py).
 memory:
