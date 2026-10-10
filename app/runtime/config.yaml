@@ -40,6 +40,12 @@ platforms:
 platform_toolsets:
   photon: [split, cardvault, browser, web, clarify]
 
+# Attachments an agent may send: only files in the runtime's own media cache (received receipts,
+# browser screenshots). Without this, anyone could ask an agent to text them a file off this machine.
+gateway:
+  strict: true
+  trust_recent_files: false
+
 # One runtime serves every friend, so the built-in notebook-style memory would mix people up.
 # Who someone is lives in the split ledger instead (app/split/ledger.py).
 memory:

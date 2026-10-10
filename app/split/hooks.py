@@ -44,9 +44,11 @@ def remember_receipt(event: Any, **_: Any) -> None:
     return None
 
 
-def turn_context(**_: Any) -> Optional[dict]:
+def turn_context(sender_id: str = "", platform: str = "", **_: Any) -> Optional[dict]:
     """pre_llm_call: whose agent this is and what is waiting on them."""
     speaker = session.current()
+    if not speaker.known and sender_id:  # the hook payload also names the sender
+        speaker = session.Speaker(normalize_handle(str(sender_id)), "", platform or "photon")
     if not speaker.known:
         return None
     try:
