@@ -15,7 +15,7 @@ fallback_providers:
   - {provider: gemini, model: gemini-3.1-flash-lite}
 
 agent:
-  api_max_retries: 1          # fail over to the next model quickly instead of retrying a spent quota
+  api_max_retries: 6          # also caps how many fallbacks one turn may walk, so keep it >= the chain length
   image_input_mode: native    # the model reads receipt photos itself
 
 plugins:

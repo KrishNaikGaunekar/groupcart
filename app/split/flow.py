@@ -23,7 +23,7 @@ from .bank import Bank, BankError
 from .ledger import Ledger
 from .money import fmt, to_cents
 from .notify import Notifier
-from .splitter import Charges, Claim, Item, compute
+from .splitter import Charges, Claim, Item, compute, portion_label
 
 RECEIPT_FRESH_SECONDS = 3600
 EXTERNAL_METHODS = ("venmo", "zelle", "paypal", "cashapp", "cash")
@@ -134,8 +134,9 @@ class Flow:
         for claim in self.ledger.claims(split_id):
             if claim["handle"] != handle:
                 continue
-            label = items[claim["item_id"]]["label"]
-            parts.append(label if claim["portion"] is None else f"{claim['portion']:.0%} of {label}")
+            item = items[claim["item_id"]]
+            parts.append(item["label"] if claim["portion"] is None
+                         else portion_label(item["label"], claim["portion"], item["qty"]))
         return ", ".join(parts) or "nothing"
 
     # -- open -----------------------------------------------------------------
@@ -276,8 +277,7 @@ class Flow:
             raise SplitError(f"still waiting on {', '.join(waiting)}. Pass force=true to settle without them "
                              "(they will only carry their part of whatever nobody claimed).")
         policy = unclaimed or split["unclaimed"]
-        items = [Item(i["id"], (f"{i['qty']}× " if i["qty"] > 1 else "") + i["label"], i["total_cents"])
-                 for i in self.ledger.items(split["id"])]
+        items = [Item(i["id"], i["label"], i["total_cents"], i["qty"]) for i in self.ledger.items(split["id"])]
         claims = [Claim(c["item_id"], c["handle"], c["portion"]) for c in self.ledger.claims(split["id"])]
         charges = Charges(split["tax_cents"], split["tip_cents"], split["fees_cents"], split["discount_cents"])
         result = compute(items, [m["handle"] for m in members], claims, charges, payer=split["payer"], unclaimed=policy)
@@ -290,7 +290,8 @@ class Flow:
                 "lines": share.lines, "tax": share.tax_cents, "tip": share.tip_cents,
                 "fees": share.fees_cents, "discount": share.discount_cents})
             is_payer = member["handle"] == split["payer"]
-            summary.append(f"{self._name(member['handle'])} {'covered their own ' if is_payer else 'owes '}{fmt(share.total_cents)}")
+            who = self._name(member["handle"])
+            summary.append(f"{who}'s own share is {fmt(share.total_cents)}" if is_payer else f"{who} owes {fmt(share.total_cents)}")
             if is_payer or share.total_cents <= 0:
                 if not is_payer:
                     self.ledger.update_member(split["id"], member["handle"], paid="paid", paid_via="nothing owed", paid_at=time.time())

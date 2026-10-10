@@ -22,6 +22,7 @@ class Item:
     id: int
     label: str
     total_cents: int
+    qty: int = 1
 
 
 @dataclass(frozen=True)
@@ -97,7 +98,16 @@ def _item_fractions(claims: Sequence[Claim]) -> dict[str, Fraction]:
     return out
 
 
-def _portion_label(label: str, fraction: Fraction) -> str:
+def portion_label(label: str, fraction: Fraction, qty: int = 1) -> str:
+    """"Edamame", "½ Edamame", or "1 of 2 Sapporo" for a multi-quantity line."""
+    fraction = Fraction(fraction).limit_denominator(1000)
+    if qty > 1:
+        units = fraction * qty
+        if fraction >= 1:
+            return f"{qty} {label}"
+        if units.denominator == 1:
+            return f"{units.numerator} of {qty} {label}"
+        label = f"{qty} {label}"
     if fraction >= 1:
         return label
     nice = {Fraction(1, 2): "½", Fraction(1, 3): "⅓", Fraction(2, 3): "⅔", Fraction(1, 4): "¼", Fraction(3, 4): "¾"}
@@ -125,10 +135,10 @@ def compute(
         for who, cents in allocate(item.total_cents, fractions).items():
             if who == UNCLAIMED:
                 if cents:
-                    pool.append((_portion_label(item.label, fractions[who]), cents))
+                    pool.append((portion_label(item.label, fractions[who], item.qty), cents))
                 continue
             if cents or fractions[who] > 0:
-                shares[who].lines.append((_portion_label(item.label, fractions[who]), cents))
+                shares[who].lines.append((portion_label(item.label, fractions[who], item.qty), cents))
                 shares[who].items_cents += cents
 
     for label, cents in pool:
