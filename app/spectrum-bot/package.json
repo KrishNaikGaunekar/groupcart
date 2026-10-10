@@ -1,11 +1,11 @@
 {
   "name": "groupcart",
   "version": "1.0.0",
-  "description": "",
+  "description": "Original GroupCart bot: a direct Spectrum + Gemini shopping-cart agent (pre-runtime skeleton).",
   "scripts": {
-    "smoke": "tsx scripts/smoke.ts",
-    "dev": "tsx watch src/index.ts",
-    "start": "tsx src/index.ts",
+    "smoke": "DOTENV_CONFIG_PATH=../../.env tsx smoke.ts",
+    "dev": "DOTENV_CONFIG_PATH=../../.env tsx watch src/index.ts",
+    "start": "DOTENV_CONFIG_PATH=../../.env tsx src/index.ts",
     "typecheck": "tsc"
   },
   "keywords": [],
