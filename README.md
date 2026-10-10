@@ -17,7 +17,9 @@ npm run dev
 - With no `SPECTRUM_*` credentials, it runs in **terminal mode** (Spectrum's TUI). Use `Ctrl+N` for a new chat.
   A chat whose id contains "group" is treated as a group. Type `/as Sam` to speak as another member, and say "cart ..." to address the bot.
 - With credentials, it runs on **iMessage** through Photon's managed lines. Set `MODE=both` to keep the TUI as well.
-- The mock payment pages and the state API are served on `http://localhost:3000` (`/pay/:id`, `/api/state`).
+- Payments go through **Capital One Nessie** when `NESSIE_API_KEY` is set: each member gets a $500 mock checking account, each chat gets a pool account. 👍 your "you owe" message (or text "pay") to move your share into the pool; when everyone's in, the pool makes a Nessie purchase at each retailer. Without a key, payments are simulated.
+- `npm run smoke` runs a scripted conversation against the real agent (no Spectrum needed).
+- State API: `http://localhost:3077/api/state`.
 
 ## Layout
 
@@ -28,14 +30,15 @@ npm run dev
 | `src/agent.ts` | system prompt + tool definitions | agent |
 | `src/llm.ts` | Gemini adapter (tool loop) | agent |
 | `src/tools/commerce.ts` | SerpAPI search, checkout links | commerce |
-| `src/tools/payments.ts` | split math, Stripe/mock links | payments |
+| `src/tools/payments.ts` | split math, pay share, pay retailers | payments |
+| `src/tools/bank.ts` | Nessie client (accounts, transfers, purchases, ledger balance) | payments |
 | `src/server.ts` | mock pay pages, `/api/state`, dashboard | payments |
 
 ## Hackathon compliance checklist
 - [ ] Devpost submission by **10:00 AM EST Sun Oct 11**, with exactly one project per team
 - [ ] Public **GitHub link** to all code written for the hack
 - [ ] **Demo video, 2 minutes max**, mentioning sponsor tech (Photon Spectrum, Gemini)
-- [ ] Choose **General** (or Beginner) track, plus: Best iMessage Agent with Photon, MLH Best Use of Gemini API, Community (4 prizes max per team)
+- [ ] Choose **General** (or Beginner) track, plus: Best iMessage Agent with Photon, MLH Best Use of Gemini API, Capital One Best Use of Nessie (4 prizes max per team)
 - [ ] Spectrum integration (required for the Photon prize) ✓ `spectrum-ts`
 - [ ] Nothing built before hacking started; no cross-posting
 - [ ] Someone at the table 12:00–1:30 PM for judging (4 minutes per judge: a 2-minute demo plus 2 minutes of Q&A)

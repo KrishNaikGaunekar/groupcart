@@ -6,8 +6,9 @@ import { addToCart, cartSummary, handleText, settle } from "./agent.js";
 import { startServer } from "./server.js";
 import { allSpaces, displayName, getSpace, save } from "./store.js";
 
-const MODE = process.env.MODE ?? (process.env.SPECTRUM_PROJECT_ID ? "imessage" : "terminal");
-const BOT_NAME = process.env.BOT_NAME ?? "cart";
+const MODE = process.env.MODE || (process.env.SPECTRUM_PROJECT_ID ? "imessage" : "terminal");
+const BOT_NAME = process.env.BOT_NAME || "cart";
+const PAY_RE = new RegExp(`^(@?(${BOT_NAME}|groupcart)[,\\s]+)?(pay|pay me|pay my share|i'?ll pay)\\W*$`, "i");
 const LIKE = new Set(["👍", "❤️", "like", "love"]);
 
 const app = await Spectrum({
@@ -77,21 +78,34 @@ async function handle(space: Space, message: any) {
     return;
   }
 
+  // "pay" is deterministic: skip the LLM so it's instant and can't be misread.
+  const mine = state.cart.payments.find((p) => p.userId === senderId && p.status === "pending");
+  if (mine && PAY_RE.test(text)) {
+    await space.responding(async () => space.send(settleMessage(await settle(state, senderId))));
+    return;
+  }
+
   // In groups only chime in when called by name.
   if (group && !new RegExp(`\\b(${BOT_NAME}|groupcart)\\b`, "i").test(text)) return;
 
   await space.responding(async () => {
     const known = [...new Set([senderId, ...state.cart.items.map((i) => i.addedBy)])];
-    const reply = await handleText(
-      {
-        state,
-        senderId,
-        members: group ? await members(space, known) : [senderId],
-        send: async (t) => (await space.send(t))?.id,
-      },
-      text,
-    );
-    if (reply) await space.send(reply);
+    let reply: string;
+    try {
+      reply = await handleText(
+        {
+          state,
+          senderId,
+          members: group ? await members(space, known) : [senderId],
+          send: async (t) => (await space.send(t))?.id,
+        },
+        text,
+      );
+    } catch (e) {
+      console.error("agent failed:", e);
+      reply = "sorry, i'm a little overloaded rn 😅 try again in a minute";
+    }
+    await space.send(reply);
   });
 }
 

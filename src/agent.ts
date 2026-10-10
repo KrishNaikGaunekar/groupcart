@@ -44,7 +44,7 @@ export async function handleText(ctx: TurnContext, text: string): Promise<string
     tools: buildTools(ctx),
   });
   save();
-  return reply;
+  return reply || "done ✓";
 }
 
 export function offerText(p: Product): string {

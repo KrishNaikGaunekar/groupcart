@@ -1,12 +1,14 @@
 // Capital One Nessie client (mock bank). Every chat member gets a checking account, every chat gets a
-// pool account; shares move member -> pool via transfers, checkout is a pool -> retailer purchase.
+// pool account; a share moves member -> pool (transfer out + deposit in), checkout is a pool -> retailer purchase.
+// This Nessie version stores amounts as integers and never updates account.balance, so all amounts are CENTS
+// and balances are computed from the account's ledger.
 // OWNER: payments worktree.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import type { Retailer } from "../types.js";
 
 const BASE = "https://api.nessieisreal.com";
 const FILE = "data/bank.json";
-const STARTING_BALANCE = 500;
+const STARTING_BALANCE_CENTS = 500_00;
 const ADDRESS = { street_number: "201", street_name: "S Columbia St", city: "Chapel Hill", state: "NC", zip: "27599" };
 
 interface BankState {
@@ -30,7 +32,7 @@ async function nessie<T = any>(method: string, path: string, body?: object): Pro
     body: body && JSON.stringify(body),
   });
   const data: any = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(`Nessie ${method} ${path} ${res.status}: ${data.message ?? ""} ${JSON.stringify(data.culprit ?? "")}`);
+  if (!res.ok) throw new Error(`Nessie ${method} ${path} ${res.status}: ${typeof data === "string" ? data : (data.message ?? JSON.stringify(data))}`);
   return (data.objectCreated ?? data) as T;
 }
 
@@ -48,7 +50,7 @@ async function newAccount(first: string, last: string, nickname: string, balance
 export async function ensureUserAccount(userId: string, name: string) {
   if (!bank.users[userId]) {
     const [first, ...rest] = name.replace(/[^\w ]/g, "").trim().split(/\s+/);
-    bank.users[userId] = await newAccount(first || "Hacker", rest.join(" ") || "NC", `${name} checking`, STARTING_BALANCE);
+    bank.users[userId] = await newAccount(first || "Hacker", rest.join(" ") || "NC", `${name} checking`, STARTING_BALANCE_CENTS);
     persist();
   }
   return bank.users[userId];
@@ -62,28 +64,54 @@ export async function ensurePool(spaceId: string) {
   return bank.pools[spaceId];
 }
 
-export async function getBalance(accountId: string): Promise<number> {
-  return (await nessie<{ balance: number }>("GET", `/accounts/${accountId}`)).balance;
+const cents = (dollars: number) => Math.round(dollars * 100);
+const today = () => new Date().toISOString().slice(0, 10);
+const sum = (rows: { amount: number; status?: string }[]) => rows.filter((r) => r.status !== "cancelled").reduce((s, r) => s + r.amount, 0);
+
+// Nessie answers 404 (not []) for an account with no transactions of a kind.
+async function list(path: string): Promise<{ amount: number; status?: string }[]> {
+  try {
+    const rows = await nessie<any>("GET", path);
+    return Array.isArray(rows) ? rows : [];
+  } catch (e) {
+    if (String(e).includes(" 404")) return [];
+    throw e;
+  }
 }
 
+/** Balance in dollars, derived from the Nessie ledger. */
+export async function getBalance(accountId: string): Promise<number> {
+  const [acct, deposits, withdrawals, transfers, purchases] = await Promise.all([
+    nessie<{ balance: number }>("GET", `/accounts/${accountId}`),
+    list(`/accounts/${accountId}/deposits`),
+    list(`/accounts/${accountId}/withdrawals`),
+    list(`/accounts/${accountId}/transfers`),
+    list(`/accounts/${accountId}/purchases`),
+  ]);
+  return (acct.balance + sum(deposits) - sum(withdrawals) - sum(transfers) - sum(purchases)) / 100;
+}
+
+/** Move money between two accounts: a transfer out of one, a matching deposit into the other. */
 export async function transfer(fromAccount: string, toAccount: string, amount: number, description: string) {
-  return nessie<{ _id: string; status: string }>("POST", `/accounts/${fromAccount}/transfers`, {
-    medium: "balance",
-    payee_id: toAccount,
-    amount,
-    transaction_date: new Date().toISOString().slice(0, 10),
+  const out = await nessie<{ _id: string }>("POST", `/accounts/${fromAccount}/transfers`, {
+    transaction_date: today(),
+    status: "completed",
+    amount: cents(amount),
     description,
   });
+  await nessie("POST", `/accounts/${toAccount}/deposits`, {
+    medium: "balance",
+    transaction_date: today(),
+    status: "completed",
+    amount: cents(amount),
+    description: `${description} (transfer ${out._id})`,
+  });
+  return out;
 }
 
 async function ensureMerchant(retailer: Retailer) {
   if (!bank.merchants[retailer]) {
-    const m = await nessie<{ _id: string }>("POST", "/merchants", {
-      name: retailer[0].toUpperCase() + retailer.slice(1),
-      category: ["shopping"],
-      address: ADDRESS,
-      geocode: { lat: 35.9132, lng: -79.0558 },
-    });
+    const m = await nessie<{ _id: string }>("POST", "/merchants", { name: retailer[0].toUpperCase() + retailer.slice(1), category: "shopping" });
     bank.merchants[retailer] = m._id;
     persist();
   }
@@ -94,8 +122,9 @@ export async function purchase(fromAccount: string, retailer: Retailer, amount: 
   return nessie<{ _id: string }>("POST", `/accounts/${fromAccount}/purchases`, {
     merchant_id: await ensureMerchant(retailer),
     medium: "balance",
-    amount,
-    purchase_date: new Date().toISOString().slice(0, 10),
+    purchase_date: today(),
+    status: "completed",
+    amount: cents(amount),
     description,
   });
 }
