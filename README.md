@@ -1,44 +1,37 @@
 # GroupCart
 
-An iMessage shopping agent built on Photon Spectrum. Text it what you want, or add it to a group chat.
-It finds the item at Amazon, Walmart or Target, builds a shared cart, splits the bill, collects
-everyone's share, and only checks out once everyone has paid.
+Split any bill by texting your agent a photo of the receipt.
 
-Built at HackNC 2026 (Oct 10–11). All code was written during the hackathon.
+Every friend has their own GroupCart agent in iMessage. After dinner, one person sends their agent the
+receipt and says who was there. The agents take it from there: they open a room among themselves, each
+one asks its own human what they had, and everyone gets a text with exactly what they owe — items, tax
+and tip — plus a way to pay. Built at HackNC 2026 (Oct 10–11).
 
-## Run
-
-```bash
-npm install
-cp .env.example .env     # fill in what you have; everything else falls back to mocks
-npm run dev
-```
-
-- With no `SPECTRUM_*` credentials, it runs in **terminal mode** (Spectrum's TUI). Use `Ctrl+N` for a new chat.
-  A chat whose id contains "group" is treated as a group. Type `/as Sam` to speak as another member, and say "cart ..." to address the bot.
-- With credentials, it runs on **iMessage** through Photon's managed lines. Set `MODE=both` to keep the TUI as well.
-- Payments go through **Capital One Nessie** when `NESSIE_API_KEY` is set: each member gets a $500 mock checking account, each chat gets a pool account. 👍 your "you owe" message (or text "pay") to move your share into the pool; when everyone's in, the pool makes a Nessie purchase at each retailer. Without a key, payments are simulated.
-- `npm run smoke` runs a scripted conversation against the real agent (no Spectrum needed).
-- State API: `http://localhost:3077/api/state`.
+- **iMessage** through [Photon Spectrum](https://photon.codes/spectrum)
+- **Gemini** as the model (it reads the receipt photo)
+- **Capital One Nessie** for accounts and reimbursements
+- A **card vault** so an agent can check out online without the model ever seeing a card number
 
 ## Layout
 
-| File | What | Owner worktree |
-|---|---|---|
-| `src/types.ts` | shared contracts (change only on main) | — |
-| `src/index.ts` | Spectrum app, routing, tapbacks, payment poller | agent |
-| `src/agent.ts` | system prompt + tool definitions | agent |
-| `src/llm.ts` | Gemini adapter (tool loop) | agent |
-| `src/tools/commerce.ts` | SerpAPI search, checkout links | commerce |
-| `src/tools/payments.ts` | split math, pay share, pay retailers | payments |
-| `src/tools/bank.ts` | Nessie client (accounts, transfers, purchases, ledger balance) | payments |
-| `src/server.ts` | mock pay pages, `/api/state`, dashboard | payments |
+| Path | What it is |
+|---|---|
+| `app/split/` | **Ours.** The bill-splitting plugin: receipt → agents' room → shares → payment |
+| `app/spectrum-bot/` | **Ours.** The first version: a TypeScript shopping-cart bot talking to Spectrum directly |
+| `vault/cardvault/` | **Ours.** Card intake over text and the checkout gate, on top of the runtime's vault |
+| `core/` | Vendored open-source agent runtime (see below). Not edited by hand |
+| `docs/` | Architecture, the split protocol, the vault, setup, hackathon rules |
+| `scripts/` | Setup and the script that vendors `core/` |
 
-## Hackathon compliance checklist
-- [ ] Devpost submission by **10:00 AM EST Sun Oct 11**, with exactly one project per team
-- [ ] Public **GitHub link** to all code written for the hack
-- [ ] **Demo video, 2 minutes max**, mentioning sponsor tech (Photon Spectrum, Gemini)
-- [ ] Choose **General** (or Beginner) track, plus: Best iMessage Agent with Photon, MLH Best Use of Gemini API, Capital One Best Use of Nessie (4 prizes max per team)
-- [ ] Spectrum integration (required for the Photon prize) ✓ `spectrum-ts`
-- [ ] Nothing built before hacking started; no cross-posting
-- [ ] Someone at the table 12:00–1:30 PM for judging (4 minutes per judge: a 2-minute demo plus 2 minutes of Q&A)
+## What we wrote and what we did not
+
+`app/`, `vault/`, `scripts/` and `docs/` were written during the hackathon.
+
+`core/` was not. It is [Hermes Agent](https://github.com/NousResearch/hermes-agent) by Nous Research
+(MIT licence), copied in and renamed to GroupCart by `scripts/rebrand_core.py`. It gives us the agent
+loop, the Photon iMessage adapter, browser automation and the encrypted vault store. Details in
+[docs/UPSTREAM.md](docs/UPSTREAM.md).
+
+## Run
+
+Setup and run instructions are in [docs/SETUP.md](docs/SETUP.md).
