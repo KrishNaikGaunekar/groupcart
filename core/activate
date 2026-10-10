@@ -1,0 +1,181 @@
+#!/usr/bin/env bash
+# ============================================================================
+# venv-style activation of the GroupCart dev environment for an interactive shell.
+#
+#   source ./activate       (bash / zsh, repo root)
+#   source ./activate.fish  (fish)
+#   .\activate.ps1          (PowerShell)
+#
+# Applies the composed pm env (PATH + tool vars) to the CURRENT shell, with
+# save/restore: `deactivate` undoes exactly what activation changed.
+#
+# `groupcart` becomes a shell function for this checkout. It runs only while the
+# shell is inside this worktree and refuses outside it, so a sibling worktree
+# keeps its own command. A prompt prefix names the worktree.
+#
+# Scripts and other processes do not source this: they run under
+# `scripts/run-in-groupcart-env`. Both build on scripts/_activation.sh.
+#
+# Sync through setup before selecting the environment. PM owns freshness;
+# activation does not maintain a second dependency stamp. It trusts the
+# recorded tool digest instead of re-hashing every entry. `groupcart pm
+# install` and `groupcart update` keep that check.
+# ============================================================================
+_GROUPCART_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Options: `--test-extras a,b` selects the test environment's runtime extras
+# (default: [all]); `--` ends options.
+# A bare `source ./activate` inherits the caller's positional parameters.
+# Ignore unrelated words so scripts with their own arguments can source it.
+_groupcart_test_env="--test-environment"
+_groupcart_expect_extras=""
+for _groupcart_arg in "$@"; do
+    if [ -n "$_groupcart_expect_extras" ]; then
+        _groupcart_test_env="--test-environment=$_groupcart_arg"
+        _groupcart_expect_extras=""
+        continue
+    fi
+    case "$_groupcart_arg" in
+        --) break ;;
+        --test-extras) _groupcart_expect_extras=1 ;;
+        --test-extras=*) _groupcart_test_env="--test-environment=${_groupcart_arg#--test-extras=}" ;;
+        *) : ;;
+    esac
+done
+if [ -n "$_groupcart_expect_extras" ]; then
+    printf '%s\n' 'activate: --test-extras needs a comma-separated list' >&2
+    unset _groupcart_arg _groupcart_test_env _groupcart_expect_extras
+    return 2 2>/dev/null || exit 2
+fi
+unset _groupcart_arg _groupcart_expect_extras
+
+# shellcheck source=scripts/_activation.sh
+. "$_GROUPCART_REPO/scripts/_activation.sh"
+
+if ! groupcart_sync "$_GROUPCART_REPO" "$_groupcart_test_env"; then
+    printf '%s\n' 'activate: setup failed; shell environment unchanged' >&2
+    unset _groupcart_test_env
+    return 1 2>/dev/null || exit 1
+fi
+unset _groupcart_test_env
+
+# Guard against double-sourcing: venv activate precedent (re-activating is a
+# no-op re-save; we keep it idempotent by deactivating first). Key on the
+# function, not the sentinel: child shells inherit __GROUPCART_ACTIVATED from an
+# activated parent but never the function, and there is nothing to undo there.
+if [ "$(type -t deactivate 2>/dev/null)" = "function" ]; then
+    deactivate
+fi
+
+_groupcart_script="$(groupcart_compose_env "$_GROUPCART_REPO" sh)" || {
+    echo "activate: could not compose the environment (see above)" >&2
+    unset _groupcart_script
+    return 1 2>/dev/null || exit 1
+}
+_groupcart_keys="$(printf '%s\n' "$_groupcart_script" | sed -n 's/^export \([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' | tr '\n' ' ')"
+
+# --- snapshot what we are about to change (deactivate restores this) ---
+# __GROUPCART_ACTIVATED is part of the composed env below (it carries the
+# installed-state path this environment was built from), so it is snapshotted
+# and exported with every other key — no separate assignment here.
+__GROUPCART_SAVED_PATH="$PATH"
+for _groupcart_k in $_groupcart_keys; do
+    eval "__GROUPCART_SAVED_$_groupcart_k=\"\${$_groupcart_k+set}\""
+    eval "__GROUPCART_PRIOR_$_groupcart_k=\${$_groupcart_k-__GROUPCART_UNSET__}"
+done
+groupcart_apply_env "$_groupcart_script"
+
+# This checkout, not whichever `groupcart` PATH finds. A function beats PATH, an
+# alias, and a hashed command, including the MSIX execution alias.
+__GROUPCART_WORKTREE="$_GROUPCART_REPO"
+# The branch names the worktree. A checkout cannot share a branch with another.
+__GROUPCART_WORKTREE_NAME="$(git -C "$_GROUPCART_REPO" rev-parse --abbrev-ref HEAD 2>/dev/null || :)"
+if [ -z "$__GROUPCART_WORKTREE_NAME" ] || [ "$__GROUPCART_WORKTREE_NAME" = HEAD ]; then
+    __GROUPCART_WORKTREE_NAME="$(basename "$_GROUPCART_REPO")"
+fi
+__GROUPCART_SAVED_PS1="${PS1-__GROUPCART_UNSET__}"
+__GROUPCART_SAVED_PROMPT_COMMAND="${PROMPT_COMMAND-__GROUPCART_UNSET__}"
+
+_groupcart_worktree_here() {
+    _groupcart_top="$(git rev-parse --show-toplevel 2>/dev/null)" || return 1
+    [ "$(cd "$_groupcart_top" && pwd -P)" = "$(cd "$__GROUPCART_WORKTREE" && pwd -P)" ]
+}
+
+groupcart() {
+    _groupcart_worktree_here || {
+        printf '%s\n' "groupcart: $(pwd) is outside $__GROUPCART_WORKTREE; refusing (the installed command is hidden while this checkout is active)" >&2
+        return 1
+    }
+    (
+        cd "$__GROUPCART_WORKTREE" || exit 1
+        if [ -n "${PYTHON-}" ]; then
+            exec "$PYTHON" groupcart "$@"
+        elif [ -x .venv/Scripts/python.exe ]; then
+            exec .venv/Scripts/python.exe groupcart "$@"
+        elif [ -x .venv/bin/python ]; then
+            exec .venv/bin/python groupcart "$@"
+        elif [ -x venv/Scripts/python.exe ]; then
+            exec venv/Scripts/python.exe groupcart "$@"
+        elif [ -x venv/bin/python ]; then
+            exec venv/bin/python groupcart "$@"
+        else
+            exec python groupcart "$@"
+        fi
+    )
+}
+
+_groupcart_prompt() {
+    if [ "$__GROUPCART_SAVED_PS1" = "__GROUPCART_UNSET__" ]; then
+        _groupcart_base_ps1=""
+    else
+        _groupcart_base_ps1="$__GROUPCART_SAVED_PS1"
+    fi
+    if _groupcart_worktree_here; then
+        PS1="($__GROUPCART_WORKTREE_NAME) $_groupcart_base_ps1"
+    else
+        PS1="$_groupcart_base_ps1"
+    fi
+}
+
+if [ -n "${PROMPT_COMMAND-}" ]; then
+    PROMPT_COMMAND="_groupcart_prompt; ${PROMPT_COMMAND}"
+else
+    PROMPT_COMMAND=_groupcart_prompt
+fi
+_groupcart_prompt
+
+deactivate() {
+    export PATH="$__GROUPCART_SAVED_PATH"
+    for _groupcart_k in $__GROUPCART_KEY_LIST; do
+        eval "_groupcart_was=\"\$__GROUPCART_SAVED_$_groupcart_k\""
+        eval "_groupcart_old=\"\$__GROUPCART_PRIOR_$_groupcart_k\""
+        if [ "$_groupcart_was" != "set" ]; then
+            unset "$_groupcart_k"
+        else
+            export "$_groupcart_k=$_groupcart_old"
+        fi
+        unset "__GROUPCART_SAVED_$_groupcart_k" "__GROUPCART_PRIOR_$_groupcart_k"
+    done
+    if [ "$__GROUPCART_SAVED_PS1" = "__GROUPCART_UNSET__" ]; then
+        unset PS1
+    else
+        PS1="$__GROUPCART_SAVED_PS1"
+    fi
+    if [ "$__GROUPCART_SAVED_PROMPT_COMMAND" = "__GROUPCART_UNSET__" ]; then
+        unset PROMPT_COMMAND
+    else
+        PROMPT_COMMAND="$__GROUPCART_SAVED_PROMPT_COMMAND"
+    fi
+    unset __GROUPCART_SAVED_PATH __GROUPCART_KEY_LIST __GROUPCART_ACTIVATED \
+          __GROUPCART_WORKTREE __GROUPCART_WORKTREE_NAME \
+          __GROUPCART_SAVED_PS1 __GROUPCART_SAVED_PROMPT_COMMAND
+    unset -f deactivate groupcart _groupcart_worktree_here _groupcart_prompt
+    unset _groupcart_k _groupcart_was _groupcart_old _groupcart_top
+}
+
+# remember the key list for deactivate (kept out of the loop vars above)
+__GROUPCART_KEY_LIST="$_groupcart_keys"
+
+# The composition library is not part of the user's shell.
+unset -f groupcart_sync groupcart_bootstrap_python groupcart_compose_env groupcart_apply_env \
+         groupcart_activation_current groupcart_ensure_env
+unset _GROUPCART_REPO _groupcart_script _groupcart_keys _groupcart_k _groupcart_top

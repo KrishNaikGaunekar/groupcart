@@ -1,0 +1,1 @@
+# GroupCart plugins package
