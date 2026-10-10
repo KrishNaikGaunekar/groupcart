@@ -1,14 +1,13 @@
-// Bill splitting + payment collection. Uses Stripe test mode when STRIPE_SECRET_KEY is set,
-// otherwise mock links served by our own http server (see src/server.ts).
+// Bill splitting + collecting shares. Money moves through Capital One Nessie when NESSIE_API_KEY is set
+// (member checking -> group pool -> retailer purchase); otherwise payments are simulated.
 // OWNER: payments worktree.
-import Stripe from "stripe";
-import type { Cart, Payment, Share } from "../types.js";
+import type { Cart, Payment, Share, SpaceState } from "../types.js";
+import { bankEnabled, ensurePool, ensureUserAccount, getBalance, purchase, transfer } from "./bank.js";
 
 const TAX_RATE = 0.0725; // NC base + Orange County, close enough for a demo
 const SHIPPING_FLAT = 5.99;
 const FREE_SHIPPING_AT = 35;
 
-const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 const round = (n: number) => Math.round(n * 100) / 100;
 
 export function cartSubtotal(cart: Cart): number {
@@ -34,51 +33,43 @@ export function splitBill(cart: Cart, members: string[]): Share[] {
     });
 }
 
-export async function createPaymentLinks(cart: Cart, shares: Share[], names: Record<string, string>): Promise<Payment[]> {
-  const base = process.env.PUBLIC_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
-  return Promise.all(
-    shares.map(async (s): Promise<Payment> => {
-      if (!stripe) {
-        const id = `mock_${cart.spaceId.replace(/\W/g, "")}_${s.userId.replace(/\W/g, "")}_${Date.now()}`;
-        return { userId: s.userId, amount: s.total, url: `${base}/pay/${id}`, externalId: id, status: "pending" };
-      }
-      const session = await stripe.checkout.sessions.create({
-        mode: "payment",
-        line_items: [
-          {
-            quantity: 1,
-            price_data: {
-              currency: "usd",
-              unit_amount: Math.round(s.total * 100),
-              product_data: { name: `GroupCart share for ${names[s.userId] ?? s.userId}` },
-            },
-          },
-        ],
-        success_url: `${base}/paid`,
-        metadata: { spaceId: cart.spaceId, userId: s.userId },
-      });
-      return { userId: s.userId, amount: s.total, url: session.url!, externalId: session.id, status: "pending" };
-    }),
-  );
+export function requestPayments(shares: Share[]): Payment[] {
+  return shares.map((s) => ({ userId: s.userId, amount: s.total, status: "pending" }));
 }
 
-const mockPaid = new Set<string>();
-export function markMockPaid(id: string) {
-  mockPaid.add(id);
-}
-
-/** Refresh statuses in place. Returns true if anything changed. */
-export async function refreshPayments(cart: Cart): Promise<boolean> {
-  let changed = false;
-  for (const p of cart.payments) {
-    if (p.status === "paid") continue;
-    const paid = stripe
-      ? (await stripe.checkout.sessions.retrieve(p.externalId)).payment_status === "paid"
-      : mockPaid.has(p.externalId);
-    if (paid) {
-      p.status = "paid";
-      changed = true;
-    }
+/** Pay one member's share into the group's pool. Throws a readable error on failure. */
+export async function payShare(state: SpaceState, userId: string, name: string): Promise<Payment> {
+  const p = state.cart.payments.find((x) => x.userId === userId);
+  if (!p) throw new Error(`${name} doesn't owe anything on this cart`);
+  if (p.status === "paid") return p;
+  if (bankEnabled()) {
+    const acct = await ensureUserAccount(userId, name);
+    const pool = await ensurePool(state.spaceId);
+    const balance = await getBalance(acct.accountId);
+    if (balance < p.amount) throw new Error(`${name}'s balance is $${balance.toFixed(2)}, short of $${p.amount.toFixed(2)}`);
+    const t = await transfer(acct.accountId, pool, p.amount, `GroupCart share (${state.cart.items.length} items)`);
+    p.transferId = t._id;
   }
-  return changed;
+  p.status = "paid";
+  return p;
+}
+
+export function allPaid(cart: Cart): boolean {
+  return cart.payments.length > 0 && cart.payments.every((p) => p.status === "paid");
+}
+
+/** Pool pays each retailer its portion of the collected money. */
+export async function payRetailers(state: SpaceState): Promise<string[]> {
+  if (!bankEnabled()) return [];
+  const pool = await ensurePool(state.spaceId);
+  const collected = state.cart.payments.reduce((s, p) => s + p.amount, 0);
+  const subtotal = cartSubtotal(state.cart);
+  const byRetailer = new Map<string, number>();
+  for (const it of state.cart.items) byRetailer.set(it.product.retailer, (byRetailer.get(it.product.retailer) ?? 0) + it.product.price * it.qty);
+  const ids: string[] = [];
+  for (const [retailer, sub] of byRetailer) {
+    const r = await purchase(pool, retailer as any, round((sub / subtotal) * collected), `GroupCart order`);
+    ids.push(r._id);
+  }
+  return ids;
 }

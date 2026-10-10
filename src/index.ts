@@ -2,10 +2,9 @@ import "dotenv/config";
 import { Spectrum, type Space } from "spectrum-ts";
 import { imessage } from "spectrum-ts/providers/imessage";
 import { terminal } from "spectrum-ts/providers/terminal";
-import { addToCart, cartSummary, checkout, handleText } from "./agent.js";
+import { addToCart, cartSummary, handleText, settle } from "./agent.js";
 import { startServer } from "./server.js";
 import { allSpaces, displayName, getSpace, save } from "./store.js";
-import { refreshPayments } from "./tools/payments.js";
 
 const MODE = process.env.MODE ?? (process.env.SPECTRUM_PROJECT_ID ? "imessage" : "terminal");
 const BOT_NAME = process.env.BOT_NAME ?? "cart";
@@ -19,7 +18,6 @@ const app = await Spectrum({
 });
 startServer();
 
-const liveSpaces = new Map<string, Space>(); // for proactive messages from the payment poller
 const queues = new Map<string, Promise<void>>(); // serialize work per conversation
 const termAlias = new Map<string, string>(); // terminal space -> impersonated sender
 
@@ -46,19 +44,23 @@ for await (const [space, message] of app.messages) {
 }
 
 async function handle(space: Space, message: any) {
-  liveSpaces.set(space.id, space);
   const group = isGroupSpace(space);
   const state = getSpace(space.id, group);
   let senderId: string = message.sender?.id ?? "unknown";
   if (space.__platform === "terminal" && termAlias.has(space.id)) senderId = termAlias.get(space.id)!;
 
-  // 👍 on an option = add it to the cart for whoever tapped.
+  // 👍 on an option = add it for whoever tapped. 👍 on your own "you owe" message = pay it.
   if (message.content.type === "reaction") {
-    const product = state.offers[message.content.target?.id];
-    if (product && LIKE.has(message.content.emoji)) {
+    if (!LIKE.has(message.content.emoji)) return;
+    const targetId = message.content.target?.id;
+    const product = state.offers[targetId];
+    const payment = state.cart.payments.find((p) => p.messageId === targetId && p.status === "pending");
+    if (product) {
       addToCart(state, product, senderId);
       const s = cartSummary(state);
       await space.send(`added for ${displayName(state, senderId)} ✓ cart is $${s.subtotal.toFixed(2)} (${s.items.length} items)`);
+    } else if (payment && payment.userId === senderId) {
+      await space.responding(async () => space.send(settleMessage(await settle(state, senderId))));
     }
     return;
   }
@@ -93,29 +95,10 @@ async function handle(space: Space, message: any) {
   });
 }
 
-// Watch open payment requests; announce payments and auto-checkout when everyone has paid.
-setInterval(async () => {
-  for (const state of allSpaces()) {
-    if (state.cart.status !== "collecting") continue;
-    const space = liveSpaces.get(state.spaceId);
-    if (!space) continue;
-    try {
-      const before = new Set(state.cart.payments.filter((p) => p.status === "paid").map((p) => p.userId));
-      if (!(await refreshPayments(state.cart))) continue;
-      for (const p of state.cart.payments) {
-        if (p.status === "paid" && !before.has(p.userId)) await space.send(`💸 ${displayName(state, p.userId)} paid $${p.amount.toFixed(2)}`);
-      }
-      const result = await checkout(state);
-      if ("ok" in result) {
-        await space.send(
-          `everyone's paid 🎉 order's ready:\n` + result.links!.map((l) => `${l.retailer}: ${l.url}`).join("\n"),
-        );
-      } else if ("waiting_on" in result) {
-        await space.send(`waiting on ${result.waiting_on!.join(", ")}`);
-      }
-      save();
-    } catch (e) {
-      console.error("poller:", e);
-    }
-  }
-}, 10_000);
+function settleMessage(r: Record<string, any>): string {
+  if (r.error) return `couldn't pay: ${r.error}`;
+  const waiting = r.payments.filter((p: any) => p.status !== "paid").map((p: any) => p.name);
+  let out = `💸 ${r.paid} paid $${r.amount.toFixed(2)}` + (waiting.length ? ` — waiting on ${waiting.join(", ")}` : "");
+  if (r.order?.ok) out += `\neveryone's in 🎉 order placed:\n` + r.order.links.map((l: any) => `${l.retailer}: ${l.url}`).join("\n");
+  return out;
+}

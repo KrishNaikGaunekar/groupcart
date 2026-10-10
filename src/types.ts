@@ -24,9 +24,9 @@ export type PaymentStatus = "pending" | "paid";
 export interface Payment {
   userId: string;
   amount: number;
-  url: string;
-  externalId: string; // stripe checkout session id, or mock id
   status: PaymentStatus;
+  messageId?: string; // the "👍 to pay" prompt we sent this person
+  transferId?: string; // Nessie transfer id once paid
 }
 
 export interface Share {

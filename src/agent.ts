@@ -3,7 +3,8 @@
 import { runAgent, type Tool } from "./llm.js";
 import { displayName, save } from "./store.js";
 import { checkoutLinks, FREE_SHIPPING, searchProducts } from "./tools/commerce.js";
-import { cartSubtotal, createPaymentLinks, refreshPayments, splitBill } from "./tools/payments.js";
+import { bankEnabled, ensureUserAccount, getBalance } from "./tools/bank.js";
+import { allPaid, cartSubtotal, payRetailers, payShare, requestPayments, splitBill } from "./tools/payments.js";
 import type { Product, SpaceState } from "./types.js";
 
 export interface TurnContext {
@@ -26,7 +27,9 @@ Rules:
 - In group chats, track who added what. Items for everyone (snacks, decor) should be added with shared=true.
 - After adding items, if a retailer's free_shipping_gap is between 0 and 15 dollars, nudge the group to add
   something small to hit free shipping.
-- Never check out until everyone has paid. Use request_payments, then payment_status. checkout only works when all paid.
+- Money moves through each person's Capital One account (Nessie). request_payments sends each person a
+  "👍 to pay" message; they can also just say "pay" and you call pay_my_share. When the last person pays,
+  checkout happens automatically. Never check out before everyone has paid.
 - If someone introduces themselves ("i'm sam"), call set_my_name.
 - Prices come only from tools. Never invent products, prices, or links.
 - Messages are prefixed with [sender name]. Address people by name in groups.`;
@@ -167,18 +170,27 @@ function buildTools(ctx: TurnContext): Tool[] {
     },
     {
       name: "request_payments",
-      description: "Create a payment link for each person and send them to the chat. Locks the cart.",
+      description: "Lock the cart and ask each person to pay their share (sends a 👍-to-pay message per person).",
       parameters: { type: "object", properties: {} },
       async run() {
         if (!state.cart.items.length) return { error: "cart is empty" };
-        const shares = splitBill(state.cart, ctx.members);
-        state.cart.payments = await createPaymentLinks(state.cart, shares, state.names);
+        if (state.cart.status === "collecting") return { error: "already collecting", payments: paymentList(state) };
+        state.cart.payments = requestPayments(splitBill(state.cart, ctx.members));
         state.cart.status = "collecting";
-        save();
         for (const p of state.cart.payments) {
-          await ctx.send(`${displayName(state, p.userId)}: $${p.amount.toFixed(2)}\n${p.url}`);
+          const id = await ctx.send(`${displayName(state, p.userId)}: you owe $${p.amount.toFixed(2)} — 👍 this to pay from your Capital One account`);
+          if (id) p.messageId = id;
         }
-        return { sent_to_chat: true, payments: state.cart.payments.map((p) => ({ name: displayName(state, p.userId), amount: p.amount })) };
+        save();
+        return { sent_to_chat: true, payments: paymentList(state) };
+      },
+    },
+    {
+      name: "pay_my_share",
+      description: "Pay the sender's share from their bank account into the group pool.",
+      parameters: { type: "object", properties: {} },
+      async run() {
+        return settle(state, senderId);
       },
     },
     {
@@ -186,29 +198,47 @@ function buildTools(ctx: TurnContext): Tool[] {
       description: "Check who has paid.",
       parameters: { type: "object", properties: {} },
       async run() {
-        await refreshPayments(state.cart);
-        save();
-        return state.cart.payments.map((p) => ({ name: displayName(state, p.userId), amount: p.amount, status: p.status }));
+        return paymentList(state);
       },
     },
     {
-      name: "checkout",
-      description: "Place the order once everyone has paid. Returns retailer cart links.",
+      name: "my_balance",
+      description: "The sender's bank balance.",
       parameters: { type: "object", properties: {} },
       async run() {
-        return checkout(state);
+        if (!bankEnabled()) return { note: "bank not connected (demo mode)" };
+        const acct = await ensureUserAccount(senderId, displayName(state, senderId));
+        return { balance: await getBalance(acct.accountId) };
       },
     },
   ];
 }
 
+function paymentList(state: SpaceState) {
+  return state.cart.payments.map((p) => ({ name: displayName(state, p.userId), amount: p.amount, status: p.status }));
+}
+
+/** Pay a member's share; if that was the last one, place the order. Used by the tool and by 👍 tapbacks. */
+export async function settle(state: SpaceState, userId: string) {
+  const name = displayName(state, userId);
+  try {
+    const p = await payShare(state, userId, name);
+    save();
+    const result: Record<string, unknown> = { paid: name, amount: p.amount, payments: paymentList(state) };
+    if (allPaid(state.cart)) result.order = await checkout(state);
+    return result;
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 export async function checkout(state: SpaceState) {
-  await refreshPayments(state.cart);
-  const unpaid = state.cart.payments.filter((p) => p.status !== "paid");
-  if (!state.cart.payments.length) return { error: "request_payments first" };
-  if (unpaid.length) return { error: "not everyone has paid", waiting_on: unpaid.map((p) => displayName(state, p.userId)) };
+  if (!allPaid(state.cart)) {
+    return { error: "not everyone has paid", waiting_on: state.cart.payments.filter((p) => p.status !== "paid").map((p) => displayName(state, p.userId)) };
+  }
+  const purchases = await payRetailers(state);
   const links = checkoutLinks(state.cart.items);
   state.cart.status = "checked_out";
   save();
-  return { ok: true, links };
+  return { ok: true, nessie_purchases: purchases.length, links };
 }
