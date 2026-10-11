@@ -1,12 +1,17 @@
 # Hosted plan: "here's your agent's number, just text it"
 
-Status: **hosted since Oct 11.** The website is on Vercel at <https://groupcart-beta.vercel.app> and the
-gateway and signup endpoint run on one Azure VM. How to operate it is in
-[SETUP.md](SETUP.md#the-hosted-backend). What follows is the original plan, with each part marked where
-it was built or done differently.
+Status: **hosted since Oct 11.** The website is on Vercel at <https://groupcart-beta.vercel.app> and one
+Azure VM holds our Photon project. How to operate it is in [SETUP.md](SETUP.md#the-hosted-backend). What
+follows is the original plan, with each part marked where it was built or done differently.
 
-**While the hosted gateway is up, nobody runs `./gc gateway run` or `app/spectrum-bot` on a laptop.**
-Only one process may hold the Photon project's message stream; a second one steals texts from the first.
+**What answers texts on that VM right now is the TypeScript bot** (`app/spectrum-bot`), not the
+receipt-splitting gateway this plan was written for. William switched it over at 2:10 AM on Oct 11 to put
+Krish's in-bot groups live. The gateway is installed on the VM and disabled; one command in SETUP.md
+swaps them. The signup endpoint runs as its own service so the website's form works with either. The
+website still describes receipt splitting.
+
+**While the VM is up, nobody runs `./gc gateway run` or `app/spectrum-bot` against that Photon project on
+a laptop.** Only one process may hold a project's message stream; a second one steals texts from the first.
 
 ## The experience
 

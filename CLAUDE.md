@@ -68,9 +68,10 @@ Run `site/tests` as well when you touch the share math or `site/js/`.
   use the unit tests and `GROUPCART_SPLIT_DRY_RUN=1`. `scripts/demo_cli.sh` costs about 30 requests.
 - **One consumer per Photon project.** Never run the gateway and `app/spectrum-bot` together, and never
   leave a gateway running in the background after a test.
-- **A hosted gateway already holds our Photon project** (Azure VM; docs/SETUP.md, "The hosted backend").
-  Do not start `./gc gateway run` locally while it is up. Test with the unit suites,
-  `GROUPCART_SPLIT_DRY_RUN=1 ./gc chat`, or stop the hosted one first and start it again afterwards.
+- **An Azure VM already holds our Photon project** (docs/SETUP.md, "The hosted backend"). Right now it
+  runs `app/spectrum-bot`, with the gateway installed but switched off. Do not start `./gc gateway run`
+  or the TypeScript bot against that project locally while the VM is up. Test with the unit suites,
+  `GROUPCART_SPLIT_DRY_RUN=1 ./gc chat`, or stop the hosted service first and start it again afterwards.
 - **Shared Photon lines cannot create group chats or text someone first.** The agents' room is in the
   ledger for that reason (docs/SPLIT_FLOW.md). Do not "fix" it without a dedicated line.
 - **Anyone who texts the number gets an agent.** `platform_toolsets.photon` in `app/runtime/config.yaml`

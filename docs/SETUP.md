@@ -90,28 +90,44 @@ what is left out, and `site/vercel.json` forwards `/api` to the hosted backend b
 
 ## The hosted backend
 
-The gateway and the signup endpoint run on one Azure VM, so **do not run `./gc gateway run` on a laptop
-while it is up** (one consumer per Photon project). To work on the agent locally, stop the hosted one
-first and start it again when you are done.
+One Azure VM holds our Photon project, so **do not run `./gc gateway run` or the TypeScript bot against
+that project on a laptop while it is up** (one consumer per Photon project).
+
+Since Oct 11, 2:10 AM it runs **the TypeScript bot** (`app/spectrum-bot`: shopping cart, in-bot groups),
+not the receipt-splitting gateway. The gateway is still installed on the VM, switched off. The website's
+signup runs as its own small service either way.
 
 | | |
 |---|---|
 | Where | Azure for Students subscription, resource group `groupcart`, VM `groupcart` (`Standard_B2s`, Ubuntu 24.04, Canada Central) |
 | Address | `groupcart-hacknc.canadacentral.cloudapp.azure.com` (HTTPS by Caddy; only 22, 80 and 443 are open) |
 | Code | `~/groupcart`, a clone of this repo. Its `.env` is the laptop's plus `GROUPCART_SIGNUP_PORT=8787` |
-| Gateway | systemd user service `groupcart-gateway-08d77aa7`, installed by `./gc gateway install`; starts at boot |
-| Signup | served by the gateway on `127.0.0.1:8787`; Caddy (`/etc/caddy/Caddyfile`) puts it on 443; the site's `/api` forwards there |
-| State | `~/groupcart/.groupcart-home` on the VM's disk: ledger, vault, sessions. Deleting the VM deletes it |
+| Bot | systemd user service `groupcart-bot`: `npm start` in `app/spectrum-bot`, on the Node the runtime's toolchain installed. State in `app/spectrum-bot/data/`, log in `data/bot.log` |
+| Signup | systemd user service `groupcart-signup`: `python3 -m split.signup` on `127.0.0.1:8787`; Caddy (`/etc/caddy/Caddyfile`) puts it on 443; the site's `/api` forwards there |
+| Gateway | systemd user service `groupcart-gateway-08d77aa7`, installed by `./gc gateway install`, **disabled**. Its state is in `~/groupcart/.groupcart-home` |
 
-Getting in needs the VM's SSH key, `~/.ssh/groupcart_azure` on William's laptop (`ssh groupcart-azure`).
+All three services start at boot if enabled. Deleting the VM deletes their state. Getting in needs the
+VM's SSH key, `~/.ssh/groupcart_azure` on William's laptop (`ssh groupcart-azure`).
 
-Ship a change to the agent, after pushing it to `main`:
+Ship a change to the bot, after pushing it to `main`:
 
 ```bash
-ssh groupcart-azure 'cd ~/groupcart && git pull --ff-only && systemctl --user restart groupcart-gateway-08d77aa7'
+ssh groupcart-azure 'cd ~/groupcart && git pull --ff-only && systemctl --user restart groupcart-bot groupcart-signup'
 ```
 
-If `.env` or `app/runtime/config.yaml` changed, run `scripts/setup.sh` on the VM before the restart.
+If `app/spectrum-bot/package.json` changed, install first. Node is not on the VM's default path:
+
+```bash
+ssh groupcart-azure 'cd ~/groupcart/app/spectrum-bot && PATH=$HOME/groupcart/.groupcart-home/tools/node-26.7.0-linux-x64/bin:$PATH npm ci'
+```
+
+Keys the bot reads (`SERPAPI_KEY` for real product search, `ANTHROPIC_API_KEY` to run on Claude Haiku
+instead of Gemini) go in `~/groupcart/.env` on the VM, followed by a restart of `groupcart-bot`. Its first
+log line says which are live:
+
+```bash
+ssh groupcart-azure 'journalctl --user -u groupcart-bot -b --no-pager | grep "mode:" | tail -1'
+```
 
 Is it up?
 
@@ -120,27 +136,19 @@ curl https://groupcart-beta.vercel.app/api/health
 ```
 
 ```bash
-ssh groupcart-azure 'systemctl --user is-active groupcart-gateway-08d77aa7; tail -n 20 ~/groupcart/.groupcart-home/logs/gateway.log'
+ssh groupcart-azure 'systemctl --user is-active groupcart-bot groupcart-signup; tail -n 20 ~/groupcart/app/spectrum-bot/data/bot.log'
 ```
 
-Watch the agents talk, on the hosted ledger:
+Switch the VM back to the receipt-splitting gateway (or the other way round: swap the two names). Stop
+one before starting the other. The gateway serves signup itself on the same port, so the separate signup
+service has to stop with the bot:
 
 ```bash
-ssh -t groupcart-azure 'cd ~/groupcart && ./gc split room --watch'
-```
-
-Stop or start the hosted gateway (signups stop with it):
-
-```bash
-ssh groupcart-azure 'systemctl --user stop groupcart-gateway-08d77aa7'
-```
-
-```bash
-ssh groupcart-azure 'systemctl --user start groupcart-gateway-08d77aa7'
+ssh groupcart-azure 'systemctl --user disable --now groupcart-bot groupcart-signup && systemctl --user enable --now groupcart-gateway-08d77aa7'
 ```
 
 Stop paying for it. Deallocating keeps the disk and the address and costs a few cents a day; deleting the
-resource group removes everything, the ledger included:
+resource group removes everything:
 
 ```bash
 az vm deallocate -g groupcart -n groupcart
