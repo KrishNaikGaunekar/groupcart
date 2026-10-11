@@ -1,7 +1,10 @@
 # Hosted plan: "here's your agent's number, just text it"
 
-Status: partly built. The signup endpoint and the website's form exist and are tested on a laptop;
-nothing is hosted yet. Pieces marked *exists* are in the repo.
+Status: partly built. The website is hosted on Vercel at <https://groupcart-beta.vercel.app>. The
+signup endpoint exists and is tested on a laptop, but the backend is **not hosted yet**: the Azure for
+Students subscription lapsed on Sept 20 and has to be renewed (or another subscription opened) before a
+VM can be created. Until then the site's form reports that the agents cannot be reached. Pieces marked
+*exists* are in the repo.
 
 ## The experience
 
@@ -76,7 +79,8 @@ in their dashboard by whoever owns the project).
 4. **Azure VM**, Compose file, disk, HTTPS.
 5. **Website**: one form, one result screen. Tap-to-text is an `sms:` link. *Exists:* the "get your
    agent" box on the home page (`site/js/signup.js`). It calls `/api/signup` and `/api/health`, which the
-   host has to forward to the backend.
+   host has to forward to the backend: once the VM has an HTTPS address, add a `site/vercel.json` with one
+   rewrite from `/api/:path*` to it and redeploy.
 6. **Gemini capacity**: billing on, or several keys. The free tier is about 20 requests a day per model.
 
 ## Things to decide

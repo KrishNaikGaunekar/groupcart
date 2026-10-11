@@ -77,6 +77,17 @@ Serves `site/` on <http://localhost:4173> (pass another port as the first argume
 with no build step and nothing loaded from another host, so it can be dropped onto any static host as
 it is. It needs no keys and does not touch the runtime.
 
+The site is live at <https://groupcart-beta.vercel.app> (Vercel project `groupcart`, in William's
+`blockdai` team). To publish a change, from `site/`:
+
+```bash
+npx vercel deploy --prod --scope blockdai
+```
+
+It is not connected to GitHub, so a push does not deploy; that command does. `site/.vercelignore` lists
+what is left out. The form on the live site says "the agents cannot be reached" until a backend is
+hosted and `/api` is forwarded to it (see [HOSTED_PLAN.md](HOSTED_PLAN.md)).
+
 To try the site's "get your agent" form on a laptop, run the signup endpoint by itself in dry-run mode
 (it never calls Photon and hands back a made-up number):
 
