@@ -42,7 +42,7 @@ Every chat with GroupCart is **personal by default**; you act for a group by nam
 - `cart movie night find pillows` (or `@movie night …`, `movie night: …`) acts on that group: everyone in it sees the request, the options and the replies. You can be in several groups.
 - Likes and replies act on whichever cart the message came from. Reply "remove" to an option to take it out (un-liking isn't delivered by Photon).
 - `cart movie night collect payments` sends each person their own "you owe"; they 👍 it or text `pay`.
-- `reset` clears your personal cart; `cart movie night reset` clears the group's. `groups` lists your groups, `leave movie night` exits.
+- `reset` clears your personal cart; `cart movie night reset` clears the group's. `groups` lists your groups, `leave movie night` exits, `delete group movie night` deletes it for everyone (creator only).
 - Groups persist in `data/parties.json` (clear it with the other state files).
 
 Tell testers:

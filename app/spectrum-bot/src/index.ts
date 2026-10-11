@@ -2,9 +2,9 @@ import "./env.js";
 import { Spectrum, type Space } from "spectrum-ts";
 import { imessage } from "spectrum-ts/providers/imessage";
 import { terminal } from "spectrum-ts/providers/terminal";
-import { addToCart, cartSummary, handleText, offerText, settle } from "./agent.js";
+import { addToCart, cartSummary, handleText, offerText, settle, startCollecting } from "./agent.js";
 import { llmName, resetHistory } from "./llm.js";
-import { createParty, getParty, joinParty, leaveParty, matchParty, mentionedParty, normalizeAddress, partiesOf, partyStateId, type Party, type PartyMember } from "./party.js";
+import { createParty, deleteParty, getParty, joinParty, leaveParty, matchParty, mentionedParty, normalizeAddress, partiesOf, partyStateId, type Party, type PartyMember } from "./party.js";
 import { startServer } from "./server.js";
 import { displayName, getSpace, save } from "./store.js";
 import type { Payment, Product, SpaceState } from "./types.js";
@@ -352,6 +352,29 @@ async function handle(bot: Bot, space: Space, message: any) {
       for (const c of owing) await c.out.all(settleMessage(await settle(c.state, senderId), c.party));
       return;
     }
+    // Nobody has asked for money yet: "pay" means "lock the cart, bill everyone, and take my share now".
+    // Group carts win over the personal one; ask only when several groups have something in them.
+    const ready = (named || replyTo ? [ctx] : allCtx()).filter((c) => c.state.cart.status === "open" && c.state.cart.items.length);
+    const open = ready.some((c) => c.party) ? ready.filter((c) => c.party) : ready;
+    if (open.length > 1) {
+      await space.send(`which group? ${open.map((c) => `"cart ${c.party!.name} pay"`).join(" or ")}`);
+      return;
+    }
+    if (open.length === 1) {
+      const c = open[0];
+      await message.react?.("👍").catch(() => {});
+      await startCollecting({
+        state: c.state,
+        members: c.party ? c.party.members.map((m) => m.userId) : [senderId],
+        send: async (t) => c.out.all(t),
+        sendTo: c.party ? (userId, t) => c.out.to(userId, t) : undefined,
+      });
+      await c.out.all(settleMessage(await settle(c.state, senderId), c.party));
+      return;
+    }
+    const where = named ? ` in ${named.party.name}` : "";
+    await space.send(`nothing to pay${where} yet. the cart's empty`);
+    return;
   }
 
   // Group requests are visible to the whole group.
@@ -403,18 +426,27 @@ async function partyCommand(bot: Bot, space: Space, senderId: string, raw: strin
     text.match(/^(?:(?:i\s+)?(?:want|wanna|would like|let'?s|lets|can (?:we|you|i)|please)\s+(?:to\s+)?)?(?:start|new|create|make|open)\s+(?:a\s+|new\s+)*group(?:\s+(?:called|named|for))?\s*(.*?)(?:\s+as\s+(\w[\w ]*))?\W*$/i) ??
     text.match(/^group\s+(?:called\s+|named\s+|for\s+)?([a-z][\w' -]{1,40}?)(?:\s+as\s+(\w[\w ]*))?\W*$/i);
   if (start) {
+    // "group movie night add justin" -> name "movie night" (the add part is handled as a hint below)
+    const [, rawName, extra] = start[1].trim().match(/^(.*?)(?:\s+(?:and\s+)?(?:add|invite|with)\s+(.+))?$/i)!;
+    start[1] = rawName;
+    const addHint = (name: string) => (extra ? `\nto add ${extra.trim()}: "add <their number> to ${name}"` : "");
     const dupe = groups.find((g) => g.name === (start[1].trim().toLowerCase() || "group order"));
     if (dupe) {
-      await reply(`you already have "${dupe.name}" (code ${dupe.code}). to shop for it: "cart ${dupe.name} find snacks". or pick a different name`);
+      await reply(`you already have "${dupe.name}" (code ${dupe.code}). to shop for it: "cart ${dupe.name} find snacks". or pick a different name${addHint(dupe.name)}`);
       return true;
     }
     const party = createParty(start[1].trim().toLowerCase() || "group order", me);
     const state = getSpace(partyStateId(party), true);
+    // A reused code (from a deleted group) starts clean.
+    state.cart = { spaceId: state.spaceId, items: [], status: "open", payments: [] };
+    state.offers = {};
+    state.names = {};
+    resetHistory(state.spaceId);
     const personalName = getSpace(space.id).names[senderId];
     if (start[2]) state.names[senderId] = start[2].trim();
     else if (personalName) state.names[senderId] = personalName;
     save();
-    await reply(`started "${party.name}" 🎉 code ${party.code}\nadd friends: "add 919-555-1234" (or they text their GroupCart "join ${party.code}")\n${usage(party)}`);
+    await reply(`started "${party.name}" 🎉 code ${party.code}\nadd friends: "add 919-555-1234" (or they text their GroupCart "join ${party.code}")\n${usage(party)}${addHint(party.name)}`);
     return true;
   }
 
@@ -471,6 +503,35 @@ async function partyCommand(bot: Bot, space: Space, senderId: string, raw: strin
       results.push(reached ? `added ${address} to ${party.name} ✓` : `couldn't text ${address}. have them text their GroupCart "join ${party.code}"`);
     }
     await reply(results.join("\n"));
+    return true;
+  }
+
+  // "delete group movie night" / "delete MOVI3" / "end movie night". Only exact group names or codes count,
+  // so "remove the candy" still reaches the AI.
+  const del = text.match(/^(?:delete|disband|end|close|remove)\s+(?:the\s+)?(group\b\s*)?(.*?)(?:\s+group)?\W*$/i);
+  if (del) {
+    const arg = del[2].trim().toLowerCase();
+    const party = groups.find((g) => g.name === arg || g.code.toLowerCase() === arg);
+    if (!party) {
+      if (!del[1]) return false;
+      await reply(groups.length ? `which group? ${groups.map((g) => `"delete ${g.code}" (${g.name})`).join(" or ")}` : `you're not in any groups`);
+      return true;
+    }
+    const state = getSpace(partyStateId(party), true);
+    if (party.hostId !== senderId && party.members.some((m) => m.userId === party.hostId)) {
+      await reply(`only ${displayName(state, party.hostId)} can delete "${party.name}". text "leave ${party.code}" to leave it`);
+      return true;
+    }
+    const others = party.members.filter((m) => m.userId !== senderId);
+    deleteParty(party);
+    resetHistory(partyStateId(party));
+    // Codes get reused ("movie night" -> MOVI2 again), so the next group must not inherit this cart.
+    state.cart = { spaceId: state.spaceId, items: [], status: "open", payments: [] };
+    state.offers = {};
+    state.names = {};
+    save();
+    await reply(`deleted "${party.name}" (${party.code}) 🗑️`);
+    await Promise.all(others.map((m) => sendToMember(m, `${displayName(state, senderId)} deleted "${party.name}"`)));
     return true;
   }
 
