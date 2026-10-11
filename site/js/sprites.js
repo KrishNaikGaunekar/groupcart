@@ -335,7 +335,7 @@
         root.querySelectorAll("canvas.px[data-sprite]").forEach(mount);
     }
 
-    window.GCSprites = { scan, names: Object.keys(SPRITES) };
+    window.GCSprites = { scan, names: Object.keys(SPRITES), sprites: SPRITES, colors: COLORS };
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => scan());
     else scan();
     if (!still) requestAnimationFrame(tick);

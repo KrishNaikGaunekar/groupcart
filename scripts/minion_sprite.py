@@ -260,12 +260,47 @@ def preview(data: dict, path: Path) -> None:
     backdrop.save(path)
 
 
+def write_layers(data: dict, folder: Path) -> None:
+    """Each part as a PNG, plus minion.json saying where it goes: what video/ animates."""
+    folder.mkdir(parents=True, exist_ok=True)
+    colours = [tuple(int(c[i:i + 2], 16) for i in (1, 3, 5)) for c in data["palette"]]
+    meta = {"width": data["width"], "height": data["height"], "order": data["order"], "layers": {}, "eyes": {}}
+
+    def save(name: str, rows: list[str], colour_of) -> None:
+        image = Image.new("RGBA", (len(rows[0]), len(rows)), (0, 0, 0, 0))
+        for y, row in enumerate(rows):
+            for x, ch in enumerate(row):
+                if ch != ".":
+                    image.putpixel((x, y), (*colour_of(ch), 255))
+        image.save(folder / f"{name}.png")
+
+    for name, part in data["layers"].items():
+        save(name, part["rows"], lambda ch: colours[CHARS.index(ch)])
+        meta["layers"][name] = {"x": part["x"], "y": part["y"], "w": len(part["rows"][0]), "h": len(part["rows"]),
+                                **({"pivot": part["pivot"]} if "pivot" in part else {})}
+    skin = tuple(int(data["skin"][i:i + 2], 16) for i in (1, 3, 5))
+    for side, eye in data["eyes"].items():
+        lens = eye["lens"]
+        seam = round(len(lens["rows"]) * 0.62)          # closed lids meet a little below the middle
+        rows = ["".join(("L" if y == seam else "S") if ch == "#" else "." for ch in row) for y, row in enumerate(lens["rows"])]
+        save(f"lid{side}", rows, lambda ch: (90, 58, 18) if ch == "L" else skin)
+        meta["layers"][f"lid{side}"] = {"x": lens["x"], "y": lens["y"], "w": len(rows[0]), "h": len(rows)}
+        meta["eyes"][side] = {"centre": eye["centre"], "pupil": eye["pupil"]}
+    (folder / "minion.json").write_text(json.dumps(meta, indent=1) + "\n", encoding="utf-8")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--preview", type=Path, help="also write a tinted picture of the parts to this path")
+    parser.add_argument("--layers", type=Path, help="also write each part as a PNG, with minion.json, into this folder")
     args = parser.parse_args()
     sprite = build()
     write(sprite)
+    if args.layers:
+        debug = sprite.pop("_debug")
+        write_layers(sprite, args.layers)
+        sprite["_debug"] = debug
+        print(f"wrote {args.layers}")
     print(f"wrote {OUTPUT.relative_to(ROOT)}: {sprite['width']}x{sprite['height']}, {len(sprite['palette'])} colours, "
           f"{len(sprite['layers'])} layers")
     if args.preview:
