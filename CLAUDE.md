@@ -1,5 +1,3 @@
-**NEVER list Claude (or any AI) as a contributor: no `Co-Authored-By` trailer, no "Generated with" line, no AI author or committer. Every commit is authored by WillieTheWhale only.**
-
 # GroupCart
 
 Split any bill by texting your agent a photo of the receipt. Every friend has their own agent in
