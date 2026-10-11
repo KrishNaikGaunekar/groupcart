@@ -1,3 +1,4 @@
+import type React from "react";
 import { Easing, interpolate } from "remotion";
 
 export const FPS = 30;
@@ -44,3 +45,23 @@ export const during = (frame: number, start: number, end: number, ramp = 8) =>
   Math.min(prog(frame, start, ramp), 1 - prog(frame, end, ramp));
 
 export const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+// The website's own look (site/style.css), for everything that is not an iPhone.
+export const S = {
+  ink: "#2a2525",
+  line: "#575555",
+  mint: "#95bcaa",
+  mintGlass: "rgba(149,188,170,0.78)",
+  glass: "rgba(221,237,240,0.92)",
+  bubble: "rgba(207,234,239,0.95)",
+  paper: "#f0f8ff",
+  deep: "#2e535a",
+  link: "#00786b",
+  lilac: "#a48ec2",
+  lilacSoft: "rgba(190,172,216,0.62)",
+  yellow: "#f7d840",
+};
+export const BASIIC = '"basiic", "Courier New", monospace';
+export const VIRALE = '"virale", "basiic", "Courier New", monospace';
+/** Body text as the site sets it, at twice the size: 14px/16px with 2px tracking there. */
+export const BODY: React.CSSProperties = { fontFamily: BASIIC, fontSize: 28, lineHeight: "32px", letterSpacing: 2, color: S.ink };
