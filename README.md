@@ -17,7 +17,7 @@ and tip — plus a way to pay. Built at HackNC 2026 (Oct 10–11).
 | Path | What it is |
 |---|---|
 | `app/split/` | **Ours.** The bill-splitting plugin: receipt → agents' room → shares → payment |
-| `app/spectrum-bot/` | **Ours.** The first version: a TypeScript shopping-cart bot talking to Spectrum directly |
+| `app/spectrum-bot/` | **Ours.** The first version: a TypeScript shopping-cart bot talking to Spectrum directly, with in-bot groups. [Its README](app/spectrum-bot/README.md) |
 | `vault/cardvault/` | **Ours.** Card intake over text and the checkout gate, on top of the runtime's vault |
 | `site/` | **Ours.** The website: static pages, a replay of the demo dinner, a calculator running the same share math |
 | `core/` | Vendored open-source agent runtime (see below). Not edited by hand |

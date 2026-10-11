@@ -12,6 +12,8 @@ from Notion; where the two disagree, the rules win.
   - Capital One Best Use of Nessie
 - [ ] Someone at the table 12:00–1:30 PM for judging (4 minutes per judge: 2-minute demo, 2 minutes Q&A)
 - [ ] No cross-posting
+- [ ] If the TypeScript bot is what gets demoed: clear `ANTHROPIC_API_KEY` so it runs on Gemini (needed for
+  the MLH Gemini prize)
 
 ## Open question for the team
 

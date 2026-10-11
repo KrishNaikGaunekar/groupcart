@@ -1,4 +1,5 @@
-// Thin LLM adapter. Gemini today; swap the body of runAgent to change providers.
+// Thin LLM adapter. Claude Haiku 4.5 when ANTHROPIC_API_KEY is set, otherwise Gemini.
+import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenAI, type Content } from "@google/genai";
 
 export interface Tool {
@@ -7,6 +8,83 @@ export interface Tool {
   parameters: object; // JSON Schema
   run(args: any): Promise<unknown>;
 }
+
+type AgentOpts = { key: string; system: string; userText: string; tools: Tool[] };
+
+export async function runAgent(opts: AgentOpts): Promise<string> {
+  return process.env.ANTHROPIC_API_KEY ? runClaude(opts) : runGemini(opts);
+}
+
+export function llmName(): string {
+  return process.env.ANTHROPIC_API_KEY ? CLAUDE_MODEL : `gemini (${KEYS.length} key${KEYS.length === 1 ? "" : "s"})`;
+}
+
+// ---------- Claude ----------
+
+const CLAUDE_MODEL = process.env.CLAUDE_MODEL || "claude-haiku-4-5";
+let anthropic: Anthropic | undefined;
+const claudeHistories = new Map<string, Anthropic.MessageParam[]>();
+
+async function runClaude(opts: AgentOpts): Promise<string> {
+  anthropic ??= new Anthropic({ timeout: TIMEOUT_MS, maxRetries: 2 });
+  const history = claudeHistories.get(opts.key) ?? [];
+  history.push({ role: "user", content: opts.userText });
+  const byName = new Map(opts.tools.map((t) => [t.name, t]));
+  const tools: Anthropic.Tool[] = opts.tools.map((t) => ({
+    name: t.name,
+    description: t.description,
+    input_schema: t.parameters as Anthropic.Tool.InputSchema,
+  }));
+
+  let reply = "";
+  for (let step = 0; step < MAX_STEPS; step++) {
+    const res = await anthropic.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: 1024,
+      system: opts.system,
+      tools,
+      messages: history,
+    });
+    history.push({ role: "assistant", content: res.content });
+    reply = res.content
+      .filter((b): b is Anthropic.TextBlock => b.type === "text")
+      .map((b) => b.text)
+      .join("\n");
+    if (res.stop_reason !== "tool_use") break;
+
+    // Run every requested tool and return all results in one user message.
+    const calls = res.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
+    const results: Anthropic.ToolResultBlockParam[] = await Promise.all(
+      calls.map(async (c) => {
+        const tool = byName.get(c.name);
+        try {
+          if (!tool) throw new Error(`unknown tool ${c.name}`);
+          const out = await tool.run(c.input ?? {});
+          return { type: "tool_result" as const, tool_use_id: c.id, content: JSON.stringify(out ?? "ok") };
+        } catch (e) {
+          console.error(`tool ${c.name} failed:`, e);
+          return { type: "tool_result" as const, tool_use_id: c.id, content: String(e), is_error: true };
+        }
+      }),
+    );
+    history.push({ role: "user", content: results });
+    reply = "";
+  }
+
+  claudeHistories.set(opts.key, trimClaude(history));
+  return reply.trim();
+}
+
+// Drop oldest turns, cutting only at a plain-text user turn so tool_use/tool_result pairs stay together.
+function trimClaude(h: Anthropic.MessageParam[]): Anthropic.MessageParam[] {
+  if (h.length <= MAX_HISTORY) return h;
+  for (let i = h.length - MAX_HISTORY; i < h.length; i++) {
+    if (h[i].role === "user" && typeof h[i].content === "string") return h.slice(i);
+  }
+  return h.slice(-MAX_HISTORY);
+}
+
+// ---------- Gemini ----------
 
 // GEMINI_API_KEYS=key1,key2,... (teammates' free-tier keys) multiplies the rate limit.
 const KEYS = (process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || "").split(",").map((k) => k.trim()).filter(Boolean);
@@ -24,7 +102,7 @@ const MAX_HISTORY = 40;
 // Per-conversation history in Gemini's own format, so thought signatures survive between turns.
 const histories = new Map<string, Content[]>();
 
-export async function runAgent(opts: { key: string; system: string; userText: string; tools: Tool[] }): Promise<string> {
+async function runGemini(opts: AgentOpts): Promise<string> {
   const history = histories.get(opts.key) ?? [];
   history.push({ role: "user", parts: [{ text: opts.userText }] });
   const byName = new Map(opts.tools.map((t) => [t.name, t]));
@@ -115,4 +193,5 @@ function trim(h: Content[]): Content[] {
 
 export function resetHistory(key: string) {
   histories.delete(key);
+  claudeHistories.delete(key);
 }
