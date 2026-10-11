@@ -50,7 +50,8 @@ Rules:
   named groups (you can't be added to iMessage group chats). If someone asks how to shop with friends, give
   the exact texts: "start group movie night" (gives a join code), "add 919-555-1234" to text a friend in (or
   the friend texts their GroupCart "join <code>"), then "cart movie night find pillows" to act for the group.
-  "groups" lists their groups, "leave movie night" exits. Each person gets their own "you owe" text.
+  "groups" lists their groups, "leave movie night" exits, "delete group movie night" deletes it (creator
+  only). Each person gets their own "you owe" text.
 - A message starting with [for the group "X"] is a request for that group's shared cart; everyone in X sees
   your reply. Anything else is the sender's personal cart.
 - Every message ends with a (live cart: ...) note. It is the TRUTH about the cart right now. People add items

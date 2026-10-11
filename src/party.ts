@@ -98,6 +98,12 @@ export function leaveParty(userId: string, party: Party): void {
   persist();
 }
 
+/** Removes the group for everyone. */
+export function deleteParty(party: Party): void {
+  parties.delete(party.code);
+  persist();
+}
+
 /** "+1 (919) 555-1234" / "919-555-1234" -> "+19195551234"; emails pass through. */
 export function normalizeAddress(raw: string): string | undefined {
   const s = raw.trim();
