@@ -3,6 +3,29 @@
 The first version of GroupCart: a shopping-cart bot that talks to Spectrum directly, without the runtime
 in `core/`. The bill-splitting product is in `app/split/`; see the [main README](../../README.md).
 
+## How it works
+
+Group shopping over iMessage: it finds things at Amazon and Walmart (SerpAPI), builds a cart friends can add
+to, splits the bill (shared items evenly, personal items to whoever wanted them, tax and shipping in
+proportion), collects each share through Capital One Nessie, and checks out once everyone has paid.
+Groups live in the bot because Photon's shared numbers can't join real iMessage group chats; every chat is
+personal by default, and naming a group acts for everyone in it.
+
+| Text | What happens |
+|---|---|
+| `find a lightning charger under $15` | options arrive as separate messages |
+| 👍 / ❤️ an option, or reply `this one` | added to the cart for whoever reacted |
+| reply `remove` to an option | taken back out |
+| `start group movie night` | creates the group and replies with a join code (e.g. `MOVI2`) |
+| `add 919-555-1234 to movie night` | texts that friend in (or they text `join MOVI2`) |
+| `movie night find popcorn` | the whole group sees the request, the options and the replies |
+| `movie night split the drinks, popcorn is mine` | marks items shared/personal and shows each person's total |
+| `movie night pay` | sends everyone their own "you owe" and pays your share |
+| 👍 your "you owe", or text `pay` | pays from your Nessie account; the last payment places the order |
+| `groups` · `leave movie night` · `delete group movie night` · `movie night reset` | manage groups and carts |
+
+Android/SMS friends work too: their "Liked …" reactions arrive as text and are matched to the option.
+
 ## Run
 
 From the repo root, once:
@@ -25,7 +48,7 @@ is using.
   A chat whose id contains "group" is treated as a group. Type `/as Sam` to speak as another member, and say "cart ..." to address the bot.
 - With credentials, it runs on **iMessage** through Photon's managed lines. Set `MODE=both` to keep the TUI as well.
 - Payments go through **Capital One Nessie** when `NESSIE_API_KEY` is set: each member gets a $500 mock checking account, each chat gets a pool account. 👍 your "you owe" message (or text "pay") to move your share into the pool; when everyone's in, the pool makes a Nessie purchase at each retailer. Without a key, payments are simulated.
-- The agent runs on **Claude Haiku 4.5** when `ANTHROPIC_API_KEY` is set, otherwise on **Gemini**. The startup line prints which LLM, search and payment backends are live.
+- `GEMINI_API_KEYS` runs the agent on **Gemini**; on a rate limit it falls back through a chain of Gemini models and keys. (Optional: `ANTHROPIC_API_KEY` switches it to Claude Haiku 4.5.) The startup line prints which LLM, search and payment backends are live.
 - `npm run smoke` runs a scripted conversation against the real agent (no Spectrum needed).
 - State API: `http://localhost:3077/api/state`.
 
