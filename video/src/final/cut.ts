@@ -16,8 +16,10 @@ export type Seg = {
 };
 
 export const SEGS: Seg[] = [
+  { id: "hook", file: "footage/IMG_5813.mp4", from: 0.2, to: 30.7, face: [818, 352] }, // STAND-IN
   // "First, you text GroupCart what items you want ... how much each person owes."
   { id: "steps", file: "footage/IMG_5813.mp4", from: 0.8, to: 30.97, face: [818, 352] },
+  { id: "pay", file: "footage/IMG_5813.mp4", from: 0.3, to: 29.2, face: [818, 352] }, // STAND-IN
 ];
 
 const length = (seg: Seg) => Math.round((seg.to - seg.from) * FPS);

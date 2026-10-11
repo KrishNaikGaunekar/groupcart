@@ -15,6 +15,14 @@ const T = (seconds: number) => at("steps", seconds);
 /** [seconds, frame of the clip] pairs -> keys for <Retime>, on the clock of a shot starting at `from`. */
 export const keys = (from: number, clock: (seconds: number) => number, pairs: [number, number][]): [number, number][] => pairs.map(([seconds, clip]) => [clock(seconds) - from, clip]);
 
+/** Ends a clip's keys with its own exit (its last 15 frames), played at normal speed as the shot
+ *  ends. Keys that would land in or after the exit are dropped. */
+export const withExit = (pairs: [number, number][], total: number, clipFrames: number): [number, number][] => [
+  ...pairs.filter(([frame]) => frame < total - 16),
+  [total - 15, clipFrames - 15],
+  [total, clipFrames],
+];
+
 /* "First, you text GroupCart what items you want."   1.17 - 3.48 */
 const stepOne = (): Placed => {
   const from = T(0.8);
@@ -120,8 +128,8 @@ const split = (until: number): Placed => {
     total,
     node: (
       <Retime
-        keys={[
-          ...keys(from, T, [
+        keys={withExit(
+          keys(from, T, [
             [25.95, 0],
             [26.55, 18], // in
             [27.95, 60], // "once everyone is done adding items": the three items, then the total
@@ -132,9 +140,9 @@ const split = (until: number): Placed => {
             [30.75, 150],
             [31.55, 174],
           ]),
-          [total - 15, 235],
-          [total, 250], // out
-        ]}
+          total,
+          250,
+        )}
       >
         <SplitCard />
       </Retime>
