@@ -57,7 +57,9 @@ Rules:
   with 👍 tapbacks and replies you never see, so never answer "what's in the cart" from memory: use that note
   (or view_cart). Search results are options, not cart items. In a personal chat it also lists the sender's
   groups' carts; if they ask about a group's cart, answer from it and remind them to start with
-  "cart <group name> ..." to change it.`;
+  "cart <group name> ..." to change it.
+- In a personal chat you can only change the personal cart. Never say you reset, added, removed or paid
+  anything in a group from here; give the exact text instead ("cart movie night reset").`;
 
 export async function handleText(ctx: TurnContext, text: string): Promise<string> {
   const { state, senderId } = ctx;
@@ -262,14 +264,7 @@ function buildTools(ctx: TurnContext): Tool[] {
       async run() {
         if (!state.cart.items.length) return { error: "cart is empty" };
         if (state.cart.status === "collecting") return { error: "already collecting", payments: paymentList(state) };
-        state.cart.payments = requestPayments(splitBill(state.cart, ctx.members));
-        state.cart.status = "collecting";
-        for (const p of state.cart.payments) {
-          const text = `${displayName(state, p.userId)}: you owe $${p.amount.toFixed(2)} — 👍 this to pay from your Capital One account`;
-          const id = ctx.sendTo ? await ctx.sendTo(p.userId, text) : ids(await ctx.send(text))[0];
-          if (id) p.messageId = id;
-        }
-        save();
+        await startCollecting(ctx);
         return { sent_to_chat: true, payments: paymentList(state) };
       },
     },
@@ -300,6 +295,19 @@ function buildTools(ctx: TurnContext): Tool[] {
       },
     },
   ];
+}
+
+/** Lock the cart and send each person their "you owe" message (used by the tool and by a bare "pay"). */
+export async function startCollecting(ctx: Pick<TurnContext, "state" | "members" | "send" | "sendTo">) {
+  const { state } = ctx;
+  state.cart.payments = requestPayments(splitBill(state.cart, ctx.members));
+  state.cart.status = "collecting";
+  for (const p of state.cart.payments) {
+    const text = `${displayName(state, p.userId)}: you owe $${p.amount.toFixed(2)} — 👍 this to pay from your Capital One account`;
+    const id = ctx.sendTo ? await ctx.sendTo(p.userId, text) : ids(await ctx.send(text))[0];
+    if (id) p.messageId = id;
+  }
+  save();
 }
 
 function paymentList(state: SpaceState) {
