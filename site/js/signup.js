@@ -49,7 +49,7 @@
             result.querySelector("[data-sms]").href = `sms:${number}?&body=${encodeURIComponent(`hi, i'm ${data.name}`)}`;
             result.querySelector("[data-vcard]").onclick = () => {
                 const card = ["BEGIN:VCARD", "VERSION:3.0", "N:;Minion;;;", "FN:Minion", "ORG:GroupCart",
-                    `TEL;TYPE=CELL:${number}`, "NOTE:Your GroupCart agent. Text it a photo of the receipt.", "END:VCARD"].join("\r\n");
+                    `TEL;TYPE=CELL:${number}`, "NOTE:Your GroupCart agent.", "END:VCARD"].join("\r\n");
                 const link = document.createElement("a");
                 link.href = URL.createObjectURL(new Blob([card], { type: "text/vcard" }));
                 link.download = "minion.vcf";
