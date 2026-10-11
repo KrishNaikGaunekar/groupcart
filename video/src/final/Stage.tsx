@@ -5,26 +5,37 @@ import { SEGS, STARTS, Seg, frames } from "./cut";
 
 /* The footage, and where the speaker sits in the frame.
 
-   The overlays own the right-hand side: a phone clip reaches in to x = 986, a panel to 1186.
-   So while one is up, the picture is pushed in a little and slid left until the speaker's face
-   is at SIDE_X and their shoulders end short of 986. Sliding uncovers the right edge of the
-   recording; a mirrored copy of the picture continues it there (shelves carry on as shelves),
-   and nearly all of that strip is behind the overlay anyway. */
+   The overlays own the right-hand side: a phone with the minion beside it reaches in to
+   x = 986, a panel to 1186. So while one is up, the picture is slid left until the speaker's
+   shoulders end short of that (each recording says where its face goes, in cut.ts). Sliding
+   uncovers the right edge of the recording. A mirrored copy of the picture continues it there,
+   so shelves carry on as shelves, and the picture goes softly out of focus over its last
+   FEATHER pixels and stays soft across the copy, so nothing in it reads as a reflection.
+   Nearly all of that strip is behind the overlay anyway. */
 
-const SIDE_X = 472; // where the face goes while an overlay is up
-const SIDE_SCALE = 1.08;
+const FEATHER = 220;
+const SOFT = 16;
 
 const Picture: React.FC<{ seg: Seg; side: number }> = ({ seg, side }) => {
-  const scale = lerp(1, SIDE_SCALE, side);
-  const x = lerp(seg.face[0], SIDE_X, side) - seg.face[0] * scale;
-  const y = seg.face[1] - seg.face[1] * scale; // the face keeps its height
+  const scale = seg.scale;
+  const x = lerp(seg.alone[0], seg.aside[0], side) - seg.face[0] * scale;
+  const y = lerp(seg.alone[1], seg.aside[1], side) - seg.face[1] * scale;
   const src = staticFile(seg.file);
   const trim = Math.round(seg.from * FPS);
+  const length = frames(seg.id);
   const video: React.CSSProperties = { position: "absolute", top: 0, width: W, height: H };
+  // a few frames of fade at each end of a stretch, so a cut never clicks
+  const volume = (f: number) => interpolate(f, [0, 3, length - 3, length], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const fade = `linear-gradient(to right, transparent, #000 ${FEATHER}px)`;
   return (
     <div style={{ position: "absolute", left: 0, top: 0, width: W, height: H, transformOrigin: "0 0", translate: `${x}px ${y}px`, scale: String(scale) }}>
-      {side > 0 ? <OffthreadVideo src={src} trimBefore={trim} muted style={{ ...video, left: W - 1, scale: "-1 1" }} /> : null}
-      <OffthreadVideo src={src} trimBefore={trim} style={{ ...video, left: 0 }} />
+      <OffthreadVideo src={src} trimBefore={trim} volume={volume} style={{ ...video, left: 0 }} />
+      {side > 0 ? (
+        <>
+          <OffthreadVideo src={src} trimBefore={trim} muted style={{ ...video, left: W - 1, scale: "-1 1" }} />
+          <div style={{ position: "absolute", left: W - FEATHER, top: 0, width: W + FEATHER, height: H, backdropFilter: `blur(${SOFT}px)`, WebkitBackdropFilter: `blur(${SOFT}px)`, maskImage: fade, WebkitMaskImage: fade }} />
+        </>
+      ) : null}
     </div>
   );
 };

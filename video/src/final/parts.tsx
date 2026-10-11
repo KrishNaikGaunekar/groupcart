@@ -21,6 +21,12 @@ export const Retime: React.FC<{ keys: [number, number][]; children: React.ReactN
   );
 };
 
+/** Fades its children in over the first frames they are on screen. */
+export const FadeIn: React.FC<{ frames?: number; children: React.ReactNode }> = ({ frames = 8, children }) => {
+  const frame = useCurrentFrame();
+  return <AbsoluteFill style={{ opacity: interpolate(frame, [0, frames], [0, 1], { extrapolateRight: "clamp" }) }}>{children}</AbsoluteFill>;
+};
+
 export type Say = { text: string; from: number; to?: number; jumps?: number[] };
 
 /** A phone on the right, as in src/clips/phones.tsx, for `total` frames. The minion can come and

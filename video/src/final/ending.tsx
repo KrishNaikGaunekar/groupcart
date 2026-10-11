@@ -3,44 +3,28 @@ import { Outro } from "../clips/pages";
 import { groupcart } from "../clips/phones";
 import { added, youOwe } from "../clips/story";
 import { at } from "./cut";
-import { PhoneShot, Retime } from "./parts";
+import { FadeIn, PhoneShot, Retime } from "./parts";
 import { Placed, keys, withExit } from "./steps";
 
 /* The last recording: step three, where the money goes, and the sign-off.
-   SAID is when each phrase starts, in seconds into it. */
-
-export const SAID = {
-  finally: 0.6, // "Finally,"
-  react: 1.2, // "just react with a"
-  thumbsUp: 2.0, // "thumbs up" (when it has been said)
-  confirm: 2.6, // "to confirm the payment."
-  nessie: 4.8, // "GroupCart will use Capital One's Nessie API sandbox"
-  collect: 8.0, // "to collect all the funds securely first"
-  payStore: 10.5, // "then pay the store after everyone confirms,"
-  fronts: 13.0, // "ensuring nobody fronts the bill."
-  pattern: 15.0, // "Payments are made by strict pattern matching,"
-  never: 17.5, // "so the AI never hallucinates amounts."
-  withGroupCart: 21.0, // "With GroupCart, you can handle all the shopping, calculating who owes what,"
-  checkOut: 25.5, // "and check out all in one place:"
-  groupChat: 27.5, // "your group chat."
-  end: 29.0, // the last word is out
-};
+   Times are seconds into it; what is being said then is quoted beside each. */
 
 const T = (seconds: number) => at("pay", seconds);
 
-/** The frame the split panel from the recording before leaves by. */
-export const SPLIT_OUT = T(SAID.finally - 0.15);
-/** The frame the last overlay is gone by: the picture brings the speaker back to the middle after it. */
-export const MONEY_OUT = T(SAID.withGroupCart - 0.1);
-/** The frame the sign-off takes over on, and how long it stays after the voice stops. */
-export const OUTRO_IN = T(SAID.checkOut - 0.2);
-const OUTRO_HOLD = 3.2;
-export const OUTRO_OUT = T(SAID.end + OUTRO_HOLD);
+/** The frame the split panel from the recording before is gone by. */
+export const SPLIT_OUT = T(1.35);
+/** The frame the last overlay is gone by: the speaker comes back to the middle around it and says
+ *  "With GroupCart, you can handle all the shopping, calculating who owes what," to camera. */
+export const MONEY_OUT = T(18.1);
+/** The sign-off takes over on "and checking out all in one place," and stays after the voice
+ *  stops at 25.13. */
+export const OUTRO_IN = T(22.35);
+export const OUTRO_OUT = T(28.4);
 
-/* "Finally, just react with a thumbs up to confirm the payment." */
+/* "Finally, just react with a thumbs up to confirm the payment."   1.1 - 3.8 */
 const stepThree = (): Placed => {
-  const from = T(SAID.finally - 0.35);
-  const total = T(SAID.nessie - 0.1) - from;
+  const from = T(0.95);
+  const total = T(4.6) - from;
   const f = (seconds: number) => T(seconds) - from;
   return {
     id: "step three",
@@ -49,15 +33,15 @@ const stepThree = (): Placed => {
     node: (
       <PhoneShot
         total={total}
-        says={[{ text: "step 3. thumbs up again to pay.", from: 0, jumps: [f(SAID.thumbsUp) + 2] }]}
+        says={[{ text: "step 3. thumbs up again to pay.", from: 0, jumps: [f(2.7) + 2] }]}
         chat={{
           name: "GroupCart",
           avatar: groupcart,
-          tapbacks: [{ target: "owe", picker: 24, at: f(SAID.thumbsUp) }], // open on "react with a", lands on "thumbs up"
+          tapbacks: [{ target: "owe", picker: 22, at: f(2.7) }], // held on "just react with a", lands on "thumbs up"
           rows: [
             { id: "k", from: "them", at: -60, text: added("Krish", 35.45, 3) },
             { id: "owe", from: "them", at: -30, text: youOwe("William", 9.63) },
-            { id: "p1", from: "them", typing: 14, at: f(SAID.confirm + 0.5), text: "💸 William paid $9.63 for movie night — waiting on Justin, Krish" },
+            { id: "p1", from: "them", typing: 14, at: f(3.3), text: "💸 William paid $9.63 for movie night — waiting on Justin, Krish" }, // "to confirm the payment."
           ],
         }}
       />
@@ -65,11 +49,11 @@ const stepThree = (): Placed => {
   };
 };
 
-/* "GroupCart will use Capital One's Nessie API sandbox to collect all the funds securely first
-   then pay the store after everyone confirms, ensuring nobody fronts the bill. Payments are made
-   by strict pattern matching, so the AI never hallucinates amounts." */
+/* "GroupCart will use Capital One's Nessie API Sandbox to collect all the funds securely, then
+   pay the store after everyone confirms, ensuring nobody fronts the bill. Payments are made by
+   strict pattern matching so the AI never hallucinates prices."   4.41 - 17.24 */
 const money = (): Placed => {
-  const from = T(SAID.nessie - 0.25);
+  const from = T(4.3);
   const total = MONEY_OUT - from;
   return {
     id: "money",
@@ -79,14 +63,18 @@ const money = (): Placed => {
       <Retime
         keys={withExit(
           keys(from, T, [
-            [SAID.nessie - 0.25, 0],
-            [SAID.nessie + 0.35, 18], // in: three nessie accounts, the pool, two stores
-            [SAID.collect, 30],
-            [SAID.payStore - 0.2, 134], // "collect all the funds securely first": the three shares go in
-            [SAID.payStore + 0.3, 160],
-            [SAID.fronts, 200], // "then pay the store after everyone confirms": the pool pays out
-            [SAID.pattern, 204],
-            [SAID.pattern + 0.8, 226], // "strict pattern matching": the line about the fixed pattern
+            [4.3, 0],
+            [4.9, 18], // in
+            [5.3, 29], // "Capital One's Nessie API Sandbox": three nessie accounts, the pool, two stores
+            [6.2, 30],
+            [8.6, 130], // "to collect all the funds securely,": the three shares go in, one by one
+            [8.65, 132],
+            [9.45, 156], // all in
+            [9.55, 162],
+            [10.9, 202], // "then pay the store after everyone confirms,": the pool pays both stores
+            [13.4, 205], // "ensuring nobody fronts the bill." is the panel's own title
+            [13.9, 220], // "Payments are made by strict pattern matching": the line about the fixed pattern
+            [17.3, 226], // "so the AI never hallucinates prices."
           ]),
           total,
           300,
@@ -98,11 +86,21 @@ const money = (): Placed => {
   };
 };
 
-/* "...and check out all in one place: your group chat." Fills the frame, and stays after the voice. */
+/* "and checking out all in one place, your group chat."   22.5 - 25.13
+   Fills the frame, fading in, and stays up after the voice. */
 const outro = (): Placed => {
   const from = OUTRO_IN;
   const total = OUTRO_OUT - from;
-  return { id: "outro", from, total, node: <Outro /> };
+  return {
+    id: "outro",
+    from,
+    total,
+    node: (
+      <FadeIn>
+        <Outro />
+      </FadeIn>
+    ),
+  };
 };
 
 export const endingShots = (): Placed[] => [stepThree(), money(), outro()];

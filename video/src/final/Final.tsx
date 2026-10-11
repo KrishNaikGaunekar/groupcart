@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, Sequence } from "remotion";
+import { AbsoluteFill, Sequence, interpolate, useCurrentFrame } from "remotion";
 import { STARTS } from "./cut";
 import { MONEY_OUT, OUTRO_OUT, SPLIT_OUT, endingShots } from "./ending";
 import { HOOK_IN, introShots } from "./intro";
@@ -22,6 +22,13 @@ const FRAMING: [number, number][] = [
   [MONEY_OUT + 10, 0],
 ];
 
+/** Up from black at the start, down to black at the end. */
+const Fades: React.FC = () => {
+  const frame = useCurrentFrame();
+  const black = interpolate(frame, [0, 6, FINAL_FRAMES - 14, FINAL_FRAMES - 1], [1, 0, 0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  return <AbsoluteFill style={{ background: "#000", opacity: black }} />;
+};
+
 export const Final: React.FC = () => (
   <AbsoluteFill style={{ background: "#000" }}>
     <Stage framing={FRAMING} />
@@ -30,5 +37,6 @@ export const Final: React.FC = () => (
         {shot.node}
       </Sequence>
     ))}
+    <Fades />
   </AbsoluteFill>
 );

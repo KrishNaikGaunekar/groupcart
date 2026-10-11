@@ -12,14 +12,22 @@ export type Seg = {
   file: string;
   from: number; // seconds into the recording where this stretch starts
   to: number;
-  face: [number, number]; // where the speaker's face is in the recording, in pixels
+  // Framing. The speaker sits at a different distance and height in each recording, so each is
+  // scaled until the head is the same size (about 400 px wide) and then placed by the face.
+  face: [number, number]; // where the face is in the recording, in pixels
+  scale: number;
+  alone: [number, number]; // where the face goes while the speaker has the frame to themselves
+  aside: [number, number]; // and while an overlay has the right-hand side
 };
 
 export const SEGS: Seg[] = [
-  { id: "hook", file: "footage/IMG_5813.mp4", from: 0.2, to: 30.7, face: [818, 352] }, // STAND-IN
+  // "We have all been there ... And it only takes three simple steps."
+  // Only a phone comes up here, with no minion beside it, so the speaker need not move as far.
+  { id: "hook", file: "footage/IMG_5812.mp4", from: 0.75, to: 28.63, face: [864, 415], scale: 1, alone: [864, 415], aside: [640, 415] },
   // "First, you text GroupCart what items you want ... how much each person owes."
-  { id: "steps", file: "footage/IMG_5813.mp4", from: 0.8, to: 30.97, face: [818, 352] },
-  { id: "pay", file: "footage/IMG_5813.mp4", from: 0.3, to: 29.2, face: [818, 352] }, // STAND-IN
+  { id: "steps", file: "footage/IMG_5813.mp4", from: 0.8, to: 30.97, face: [818, 352], scale: 1.06, alone: [900, 356], aside: [472, 356] },
+  // "Finally, just react with a thumbs up ... your group chat."
+  { id: "pay", file: "footage/IMG_5814.mp4", from: 0.7, to: 25.6, face: [944, 370], scale: 1.27, alone: [960, 370], aside: [472, 362] },
 ];
 
 const length = (seg: Seg) => Math.round((seg.to - seg.from) * FPS);

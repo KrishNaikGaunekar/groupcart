@@ -15,7 +15,7 @@ cd "$(dirname "$0")/.."
 mkdir -p public/footage footage/.work
 
 TARGET=-16
-VOICE="highpass=f=90,afftdn=nr=12:nf=-50,acompressor=threshold=-30dB:ratio=3:attack=5:release=150"
+VOICE="highpass=f=90,afftdn=nr=16:nf=-48,acompressor=threshold=-30dB:ratio=3:attack=5:release=150"
 
 names=("$@")
 if [ ${#names[@]} -eq 0 ]; then

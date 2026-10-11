@@ -118,7 +118,7 @@ const stepTwo = (): Placed => {
 };
 
 /* "and once everyone is done adding items, it will send a text detailing how much each person
-   owes."   26.23 - 30.9.  It stays up until `until`, a frame of the finished video. */
+   owes."   26.23 - 30.9.  It is gone by `until`, a frame of the finished video. */
 const split = (until: number): Placed => {
   const from = T(25.95);
   const total = until - from;
@@ -137,8 +137,7 @@ const split = (until: number): Placed => {
             [28.8, 84],
             [29.35, 104], // "detailing how much"
             [29.95, 124], // "each person owes."
-            [30.75, 150],
-            [31.55, 174],
+            [30.9, 148], // all three are counted up; it leaves as the next recording starts
           ]),
           total,
           250,

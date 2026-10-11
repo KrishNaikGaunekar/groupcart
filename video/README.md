@@ -1,7 +1,33 @@
-# Motion graphics for the demo video
+# The demo video
 
-Eleven short clips for the two-minute presentation video, made with [Remotion](https://www.remotion.dev)
+The presentation video and the motion graphics in it, made with [Remotion](https://www.remotion.dev)
 (React rendered to video). 1920 x 1080, 30 fps. Remotion is free for teams of up to three.
+
+## The finished video
+
+`out/groupcart-demo.mp4`, 1 minute 26: Justin reading the script to camera in three recordings, with the
+clips below laid over him where he says the line each one is for.
+
+```bash
+./final.sh           # footage/IMG_5812.mov, IMG_5813.mov, IMG_5814.mov -> out/groupcart-demo.mp4
+```
+
+The recordings are not in git (they are about 90 MB each); put them in `footage/`. Needs macOS and ffmpeg.
+
+- `tools/prep-footage.sh` turns each iPhone recording (HDR, wavering 60 fps, very quiet) into plain
+  30 fps video with the voice cleaned and brought up to a normal level, in `public/footage/`.
+- `src/final/cut.ts` is the cut: which stretch of which recording plays, and how each is framed.
+  The speaker is in the middle while alone in the frame and is moved to the left while an overlay
+  has the right-hand side, so nothing ever covers them.
+- `src/final/intro.tsx`, `steps.tsx`, `ending.tsx` place the overlays. Every time in them is a second
+  of a recording with the words being said then beside it, so to move something, change its number.
+  The phones are given their messages on those times directly; the panels are the clips below played
+  on a bent clock (`Retime`) so each thing in them happens on its word.
+- `09-groups-relay` and `10-android` are not in it: the script has no lines for them.
+
+## The clips
+
+Eleven short clips, each also rendered on its own.
 
 Nine are **overlays**: they have no background and are rendered with transparency, to sit on a track
 above footage of someone talking. They keep to the right-hand side of the frame, come in at the start
