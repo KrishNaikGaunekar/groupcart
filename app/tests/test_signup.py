@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from split.ledger import Ledger  # noqa: E402
-from split.signup import DRY_RUN_NUMBER, PER_MINUTE, Signup, SignupError, serve  # noqa: E402
+from split.signup import DRY_RUN_NUMBER, PER_MINUTE, PER_MINUTE_ALL, Signup, SignupError, caller, serve  # noqa: E402
 
 BOB = "+19195550001"
 
@@ -109,6 +109,23 @@ class SignupTest(unittest.TestCase):
         with self.assertRaises(SignupError) as later:
             signup.signup(payload, "9.9.9.9")
         self.assertEqual(later.exception.status, 403)
+
+    def test_everyone_together_is_capped_whatever_address_they_claim(self):
+        now = [0.0]
+        signup = Signup(self.ledger, self.photon, invite_code="lilac", clock=lambda: now[0])
+        payload = {"name": "Bob", "phone": BOB, "code": "wrong"}
+        for n in range(PER_MINUTE_ALL):
+            with self.assertRaises(SignupError) as wrong:
+                signup.signup(payload, f"made-up-{n}")
+            self.assertEqual(wrong.exception.status, 403)
+        with self.assertRaises(SignupError) as capped:
+            signup.signup(payload, "yet-another")
+        self.assertEqual(capped.exception.status, 429)
+
+    def test_caller_is_the_visitor_not_the_proxy(self):
+        self.assertEqual(caller({"x-vercel-forwarded-for": "9.9.9.9", "x-forwarded-for": "76.76.21.21"}, "127.0.0.1"), "9.9.9.9")
+        self.assertEqual(caller({"x-forwarded-for": "8.8.8.8, 10.0.0.1"}, "127.0.0.1"), "8.8.8.8")
+        self.assertEqual(caller({}, "127.0.0.1"), "127.0.0.1")
 
     def test_dry_run_never_touches_photon(self):
         signup = Signup(self.ledger, None, invite_code="lilac", dry_run=True)

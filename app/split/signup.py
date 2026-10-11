@@ -44,7 +44,8 @@ logger = logging.getLogger(__name__)
 PHOTON_HOST = "https://spectrum.photon.codes"
 DRY_RUN_NUMBER = "+15555550100"
 MAX_BODY = 4096
-PER_MINUTE = 6                      # requests one address may make
+PER_MINUTE = 30                     # requests one address may make; the form asks again every 3s while a number is pending
+PER_MINUTE_ALL = 240                # and everyone together, whatever addresses they claim
 NAME_OK = re.compile(r"[^\W\d_](?:[^\W\d_]|[ .'\-]){0,39}", re.UNICODE)
 
 
@@ -109,10 +110,13 @@ class Signup:
     def _throttle(self, client: str) -> None:
         now = self.clock()
         with self._lock:
-            recent = [t for t in self._seen.get(client, []) if now - t < 60]
-            if len(recent) >= PER_MINUTE:
-                raise SignupError(429, "slow down a little. try again in a minute.")
-            self._seen[client] = recent + [now]
+            for key, limit in ((client, PER_MINUTE), ("", PER_MINUTE_ALL)):
+                recent = [t for t in self._seen.get(key, []) if now - t < 60]
+                if len(recent) >= limit:
+                    raise SignupError(429, "slow down a little. try again in a minute.")
+                self._seen[key] = recent + [now]
+            if len(self._seen) > 5000:          # forget addresses that have gone quiet
+                self._seen = {k: v for k, v in self._seen.items() if v and now - v[-1] < 60}
 
     def signup(self, payload: Any, client: str = "") -> tuple[int, dict]:
         if not isinstance(payload, dict):
@@ -150,6 +154,21 @@ class Signup:
         if not number:
             return 202, {"pending": True}
         return 200, {"agent_number": number, "name": first, "known": known, **({"dry_run": True} if self.dry_run else {})}
+
+
+def caller(headers: Any, peer: str) -> str:
+    """Whose request this is, for the throttle.
+
+    The site's host puts the visitor's address in x-vercel-forwarded-for, and the TLS proxy in front
+    of us rewrites x-forwarded-for to whoever connected to it, which for the site is the host's edge
+    and would lump every visitor together. Someone calling us directly can make the first header up,
+    so this only spreads honest traffic out; the invite code and the overall limit are the gate.
+    """
+    for name in ("x-vercel-forwarded-for", "x-forwarded-for"):
+        value = (headers.get(name) or "").split(",")[0].strip()
+        if value:
+            return value[:64]
+    return peer
 
 
 def handler_for(signup: Signup, origin: str = "") -> type[BaseHTTPRequestHandler]:
@@ -194,9 +213,7 @@ def handler_for(signup: Signup, origin: str = "") -> type[BaseHTTPRequestHandler
                     payload = json.loads(self.rfile.read(length))
                 except ValueError:
                     raise SignupError(400, "send a name and a phone number.") from None
-                # behind the proxy the caller's own address is the first one forwarded
-                client = (self.headers.get("x-forwarded-for") or self.client_address[0]).split(",")[0].strip()
-                status, body = signup.signup(payload, client)
+                status, body = signup.signup(payload, caller(self.headers, self.client_address[0]))
             except SignupError as exc:
                 status, body = exc.status, {"error": exc.message}
             except Exception:  # noqa: BLE001  a person is waiting on this; never drop the connection on them
