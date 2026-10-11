@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>the vault · groupcart</title>
+    <meta name="description" content="How a GroupCart agent can pay online with your card without the model ever seeing the card number.">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='3' y='1' width='10' height='14' rx='5' fill='%23f7d840'/%3E%3Cpath d='M3 10h10v1a5 4 0 0 1-10 0z' fill='%234f7fc0'/%3E%3Crect x='2' y='5' width='12' height='2' fill='%232a2525'/%3E%3Ccircle cx='8' cy='6' r='3.4' fill='%23cfd8db'/%3E%3Ccircle cx='8' cy='6' r='2.2' fill='%23fff'/%3E%3Ccircle cx='8' cy='6' r='1' fill='%234a2f1b'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="page-vault bg-hall">
+    <script src="js/boot.js"></script>
+    <div class="crt" aria-hidden="true"></div>
+
+    <header class="masthead">
+        <h1><a class="title" href="index.html">groupcart</a></h1>
+    </header>
+    <nav class="nav" aria-label="pages">
+        <a class="navbutton" href="index.html">home</a>
+        <a class="navbutton" href="flow.html">the split</a>
+        <a class="navbutton" href="vault.html" aria-current="page"><canvas class="px" data-sprite="disc"></canvas>the vault</a>
+        <a class="navbutton" href="stack.html">under the hood</a>
+        <a class="navbutton" href="faq.html">faq</a>
+        <a class="navbutton" href="credits.html">credits</a>
+    </nav>
+
+    <div class="duo">
+        <aside aria-label="the vault at a glance">
+            <section class="box">
+                <h2>at a glance <canvas class="px" data-sprite="lock"></canvas></h2>
+                <div class="inner stats">
+                    <span>card numbers the model has seen:</span><span class="digits" data-digits="00"></span>
+                    <span title="one clearance covers one fill">fills per clearance:</span><span class="digits" data-digits="01"></span>
+                    <span title="then the agent has to ask again">minutes it lasts:</span><span class="digits" data-digits="15"></span>
+                    <span title="python3 -m unittest discover -s vault/tests">vault tests passing:</span><span class="digits" data-digits="11"></span>
+                </div>
+            </section>
+
+            <section class="box">
+                <h2>bud.jpg <canvas class="px" data-sprite="lilac"></canvas></h2>
+                <span class="dither" tabindex="0" title="hover to un-dither">
+                    <img src="assets/img/bud.jpg" alt="" width="356" height="356" loading="lazy">
+                    <img class="dots" src="assets/img/bud-dither.png" alt="A lilac flower opening beside a bud, dithered" width="178" height="178">
+                </span>
+                <i class="ring"></i>
+            </section>
+
+            <section class="box">
+                <h2>the model's view <canvas class="px" data-sprite="card"></canvas></h2>
+                <div class="inner">
+                    <table class="table wrap">
+                        <tbody>
+                            <tr><td>sees</td><td>Brand, last four digits, which sites a card is allowed on, opaque handles</td></tr>
+                            <tr><td>never sees</td><td>Card number, expiry, security code</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="box">
+                <h2>test cards only <canvas class="px" data-sprite="sparkle"></canvas></h2>
+                <div class="inner">
+                    <p>For the hackathon demo we use the published test number, <code>4242 4242 4242 4242</code>, and nothing
+                        else. Please do the same.</p>
+                </div>
+            </section>
+        </aside>
+
+        <main>
+            <section class="box">
+                <h2>the card vault <canvas class="px" data-sprite="lock"></canvas></h2>
+                <div class="inner">
+                    <p>The goal: an agent can pay for something online with your card, and the model never sees the card
+                        number. So a prompt injection, a leaked transcript or a chatty model cannot give it away.</p>
+                    <p>You hand over a card for named sites. The system stores it where the agent cannot read it, and the
+                        agent only ever holds an opaque handle. The code is <code>vault/cardvault/</code>.</p>
+                </div>
+            </section>
+
+            <section class="box">
+                <h2>watch a card arrive <canvas class="px" data-sprite="card"></canvas></h2>
+                <div class="inner">
+                    <div class="intake">
+                        <div class="pane" id="intake-sent"><span>what the person texts</span></div>
+                        <div class="gate" id="intake-gate">intake hook</div>
+                        <div class="pane" id="intake-seen"><span>what the model and the transcript get</span></div>
+                    </div>
+                    <p class="cta" style="margin-top: 8px"><button type="button" class="togglebutton" id="intake-play">send the test card</button></p>
+                    <p class="small muted">A fixed script with the test number. The hook runs before the agent does, so the
+                        card text is replaced with a note before any model request is built.</p>
+                </div>
+            </section>
+
+            <section class="box">
+                <h2>the flow <canvas class="px" data-sprite="arrows"></canvas></h2>
+                <div class="inner">
+                    <div class="step"><span class="n">01</span>
+                        <div><b>You ask for something.</b><br><span class="quote me">can you order this for me on Amazon?</span></div>
+                    </div>
+                    <div class="step"><span class="n">02</span>
+                        <div><b>The agent asks which sites the card may be used on</b> and calls <code>card_request</code>. Then it asks
+                            for the number, expiry and security code in one text.</div>
+                    </div>
+                    <div class="step"><span class="n">03</span>
+                        <div><b>You text the card. Before the agent runs,</b> the gateway hook hands the text to the intake. The
+                            details go into the encrypted vault, one item per allowed site, and the message is replaced with a note.
+                            That note is all the model and the transcript ever get.</div>
+                    </div>
+                    <div class="step"><span class="n">04</span>
+                        <div><b>At checkout the agent must call <code>checkout_start</code>,</b> which makes it ask first: just for you,
+                            or a group order to split before paying? Solo is cleared. A group order opens a prepay split, and the
+                            checkout only clears once the split plugin reports it fully collected.</div>
+                    </div>
+                    <div class="step"><span class="n">05</span>
+                        <div><b>The fill.</b> The guard checks the card is yours and the purchase is cleared. The runtime asks you to
+                            confirm. Then the card is typed into the page without passing through the model.</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="box">
+                <h2>can and cannot <canvas class="px" data-sprite="heart"></canvas></h2>
+                <div class="inner">
+                    <table class="table wrap">
+                        <tbody>
+                            <tr><td>can</td><td>Ask for a card, list a person's cards, delete one, request a fill on an allowed site</td></tr>
+                            <tr><td>cannot</td><td>Read a card back, fill it on another site, fill someone else's card, fill without a cleared
+                                purchase and the person's confirmation</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="box">
+                <h2>ours and theirs <canvas class="px" data-sprite="wave"></canvas></h2>
+                <div class="inner">
+                    <p>The runtime in <code>core/</code> already ships the hard part: an encrypted store, handles the model can list
+                        but not read, a fill that only works on the exact site a card is bound to, and redaction of filled values.
+                        That vault assumes one person adding cards from a terminal. GroupCart is many people, over text. We added:</p>
+                    <table class="table">
+                        <thead><tr><th>ours</th><th>what it does</th></tr></thead>
+                        <tbody>
+                            <tr><td>Intake over text</td><td>Catches card details in an inbound message before the model or the transcript sees them</td></tr>
+                            <tr><td>Permitted sites</td><td>The person names the sites first; the card is bound to exactly those</td></tr>
+                            <tr><td>Per-person scoping</td><td>You only see and fill vault items you saved</td></tr>
+                            <tr><td>Checkout gate</td><td>A card fill needs a cleared purchase: solo, or a group order whose split is fully paid</td></tr>
+                            <tr><td>Second net</td><td>Card numbers are stripped from every model request and tool result</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="box">
+                <h2>honest limits <canvas class="px" data-sprite="dots"></canvas></h2>
+                <ul class="inner list">
+                    <li>The card travels over iMessage and through Photon to reach us. It is kept out of the model, the transcript
+                        and our state file, but it exists in your own message history and in transit. One-time virtual cards per
+                        purchase are the right next step.</li>
+                    <li>Not tested end to end by us: the actual fill into a live checkout page, and the confirmation prompt as it
+                        appears over iMessage. Both are runtime features.</li>
+                    <li>Exact sites only. A checkout hosted on a third domain is refused until that site is added.</li>
+                    <li>The vault key sits next to the vault file on the machine. Anyone with the laptop has both.</li>
+                </ul>
+            </section>
+        </main>
+    </div>
+
+    <div class="pagedoll" id="pagedoll" data-greeting="The vault! I can pay with your card and I have never seen the number. Press the button and watch it vanish.">
+        <div class="speech" id="speech">
+            <span>Bello!</span>
+            <div class="choices">
+                <a href="index.html">Take me home.</a>
+            </div>
+        </div>
+        <canvas class="minion" id="minion" width="136" height="142"></canvas>
+    </div>
+
+    <footer class="ending">
+        <span class="barcode" aria-hidden="true"></span>
+        established 2026.10.10
+        <span class="barcode" aria-hidden="true"></span>
+    </footer>
+
+    <script src="js/sprites.js"></script>
+    <script src="js/minion-sprite.js"></script>
+    <script src="js/minion.js"></script>
+    <script src="js/site.js"></script>
+    <script src="js/vault.js"></script>
+</body>
+
+</html>

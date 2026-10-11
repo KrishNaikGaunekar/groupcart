@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>groupcart</title>
+    <meta name="description" content="GroupCart: split any bill by texting your agent a photo of the receipt. Built at HackNC 2026.">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='3' y='1' width='10' height='14' rx='5' fill='%23f7d840'/%3E%3Cpath d='M3 10h10v1a5 4 0 0 1-10 0z' fill='%234f7fc0'/%3E%3Crect x='2' y='5' width='12' height='2' fill='%232a2525'/%3E%3Ccircle cx='8' cy='6' r='3.4' fill='%23cfd8db'/%3E%3Ccircle cx='8' cy='6' r='2.2' fill='%23fff'/%3E%3Ccircle cx='8' cy='6' r='1' fill='%234a2f1b'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="page-home">
+    <script src="js/boot.js"></script>
+    <div class="crt" aria-hidden="true"></div>
+
+    <header class="masthead">
+        <h1><a class="title" href="index.html">groupcart</a></h1>
+    </header>
+    <nav class="nav" aria-label="pages">
+        <a class="navbutton" href="index.html" aria-current="page"><canvas class="px" data-sprite="disc"></canvas>home</a>
+        <a class="navbutton" href="flow.html">the split</a>
+        <a class="navbutton" href="vault.html">the vault</a>
+        <a class="navbutton" href="stack.html">under the hood</a>
+        <a class="navbutton" href="faq.html">faq</a>
+        <a class="navbutton" href="credits.html">credits</a>
+    </nav>
+
+    <div class="columns">
+        <!-- left -->
+        <aside aria-label="status">
+            <section class="box">
+                <div class="clock"></div>
+            </section>
+
+            <section class="box">
+                <h2>changelog <canvas class="px" data-sprite="sparkle"></canvas></h2>
+                <div class="inner scroll">
+                    <p>10-11 01:05: get your agent: sign up here with a name and a phone number.</p>
+                    <hr>
+                    <p>10-10 21:20: the minion is justin's pixel art now. it waves, walks when you scroll and watches your mouse.</p>
+                    <hr>
+                    <p>10-10 17:40: this website.</p>
+                    <hr>
+                    <p>10-10 16:41: wrote the hosted plan: sign up with just a phone number.</p>
+                    <hr>
+                    <p>10-10 16:13: a script that registers phones on the photon project.</p>
+                    <hr>
+                    <p>10-10 15:51: agents may only send files from the media cache.</p>
+                    <hr>
+                    <p>10-10 15:50: iphone receipt photos (heic) become jpeg before the model sees them.</p>
+                    <hr>
+                    <p>10-10 15:47: imessage agents limited to split, vault, browser and web tools.</p>
+                    <hr>
+                    <p>10-10 15:46: the card vault: cards over text, per-person scoping, a checkout gate.</p>
+                    <hr>
+                    <p>10-10 15:41: walk the whole model fallback chain. clearer share wording.</p>
+                    <hr>
+                    <p>10-10 15:32: the split plugin: ledger, share math, agents' room, nessie bank.</p>
+                    <hr>
+                    <p>10-10 15:29: vendored the agent runtime into core/ and said so in the readme.</p>
+                    <hr>
+                    <p>10-10 12:14: nessie ledger payments, gemini multi-key fallback.</p>
+                    <hr>
+                    <p>10-10 11:53: payments switched to capital one nessie.</p>
+                    <hr>
+                    <p>10-10 11:45: hacking starts. a spectrum imessage agent with a gemini tool loop.</p>
+                </div>
+            </section>
+
+            <section class="box">
+                <h2>lilac.jpg <canvas class="px" data-sprite="lilac"></canvas></h2>
+                <span class="dither" tabindex="0" title="hover to un-dither">
+                    <img src="assets/img/lilac.jpg" alt="" width="356" height="356" loading="lazy">
+                    <img class="dots" src="assets/img/lilac-dither.png" alt="A single lilac flower, close up, dithered" width="178" height="178">
+                </span>
+                <i class="ring"></i>
+            </section>
+
+            <section class="box">
+                <h2>run it <canvas class="px" data-sprite="cart"></canvas></h2>
+                <div class="inner">
+                    <p class="small">the whole dinner, real model, no phones:</p>
+                    <div class="command">
+                        <pre>scripts/demo_cli.sh</pre>
+                        <button type="button" class="togglebutton" data-copy>copy</button>
+                    </div>
+                    <p class="small">the live iMessage agent:</p>
+                    <div class="command">
+                        <pre>./gc gateway run</pre>
+                        <button type="button" class="togglebutton" data-copy>copy</button>
+                    </div>
+                    <p class="small">watch the agents talk:</p>
+                    <div class="command">
+                        <pre>./gc split room --watch</pre>
+                        <button type="button" class="togglebutton" data-copy>copy</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="box">
+                <h2>receipt.png <canvas class="px" data-sprite="receipt"></canvas></h2>
+                <div class="inner flush">
+                    <div class="receipt" role="img" aria-label="The sample receipt: Sushi Nikko, seven items, total $97.05">
+                        <strong>SUSHI NIKKO</strong>
+                        <span class="sub">Sat Oct 10 2026 · Table 12</span>
+                        <span class="row" style="--i:0"><span>California Roll</span><span>8.50</span></span>
+                        <span class="row" style="--i:1"><span>Dr Pepper</span><span>3.00</span></span>
+                        <span class="row" style="--i:2"><span>Spicy Ramen</span><span>16.00</span></span>
+                        <span class="row" style="--i:3"><span>Edamame</span><span>6.00</span></span>
+                        <span class="row" style="--i:4"><span>Salmon Nigiri</span><span>14.00</span></span>
+                        <span class="row" style="--i:5"><span>2 Sapporo</span><span>14.00</span></span>
+                        <span class="row" style="--i:6"><span>Chicken Katsu</span><span>15.00</span></span>
+                        <span class="row rule" style="--i:7"><span>Tax</span><span>5.55</span></span>
+                        <span class="row" style="--i:8"><span>Tip</span><span>15.00</span></span>
+                        <span class="row rule total" style="--i:9"><span>TOTAL</span><span>97.05</span></span>
+                    </div>
+                </div>
+            </section>
+        </aside>
+
+        <!-- middle -->
+        <main>
+            <section class="box">
+                <h2>greetings <canvas class="px" data-sprite="hop"></canvas></h2>
+                <div class="inner">
+                    <p>welcome to groupcart!</p>
+                    <p>Split any bill by texting your agent a photo of the receipt. Every friend has their own
+                        agent in iMessage. The agents talk among themselves, each one asks its own human what
+                        they had, and everyone gets a text with exactly what they owe: items, tax and tip.</p>
+                    <p>Nobody does arithmetic and nobody chases anybody. Built in one weekend at HackNC 2026.</p>
+                    <hr>
+                    <div class="cta">
+                        <canvas class="px" data-sprite="arrows"></canvas>
+                        <a class="togglebutton bounce" href="flow.html">how a split works</a>
+                        <canvas class="px" data-sprite="arrows" style="transform: scaleX(-1)"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section class="box" id="start">
+                <h2>get your agent <canvas class="px" data-sprite="wave"></canvas></h2>
+                <div class="inner">
+                    <p class="signup-status" id="signup-status" aria-live="polite">checking the line...</p>
+                    <form class="signup" id="signup" novalidate>
+                        <label>your name
+                            <input name="name" autocomplete="name" maxlength="40" required placeholder="Bob"></label>
+                        <label>your phone
+                            <input name="phone" type="tel" inputmode="tel" autocomplete="tel" required placeholder="919 555 0123"></label>
+                        <label>invite code
+                            <input name="code" autocomplete="off" autocapitalize="none" spellcheck="false" required placeholder="ask us"></label>
+                        <button type="submit" class="togglebutton">get my agent</button>
+                    </form>
+                    <div class="signup-result" id="signup-result" hidden>
+                        <p>hi <span data-name></span>! text your agent at</p>
+                        <p class="agent-number" data-number></p>
+                        <div class="cta">
+                            <a class="togglebutton" data-sms href="#start">text it</a>
+                            <button type="button" class="togglebutton" data-vcard>add to contacts</button>
+                        </div>
+                        <p class="small muted">Say hi first. Your agent cannot text you until you have texted it once. Then send it a
+                            photo of a receipt.</p>
+                    </div>
+                    <hr>
+                    <p class="small muted">Your number is used for one thing: telling the phone line that you may text your agent.</p>
+                </div>
+            </section>
+
+            <section class="box bare">
+                <canvas class="banner" data-banner="streak" width="728" height="112" role="img" aria-label="groupcart: split the bill by text"></canvas>
+            </section>
+
+            <section class="box" id="replay">
+                <h2>the dinner, replayed <canvas class="px" data-sprite="phone"></canvas></h2>
+                <div class="phone">
+                    <div class="phone-tabs" role="tablist" aria-label="whose screen">
+                        <button type="button" role="tab" data-view="bob">bob's phone</button>
+                        <button type="button" role="tab" data-view="room">agents' room</button>
+                        <button type="button" role="tab" data-view="john">john's phone</button>
+                    </div>
+                    <div class="thread" id="thread" tabindex="0" aria-label="the conversation"></div>
+                </div>
+                <p class="replay-note">Bob paid for sushi with John, Susan and Charlie. This is
+                    <code>scripts/demo_cli.sh</code> on three screens. The texts the tools write are word for word;
+                    hover a grey bubble to see which ones are the agent's own wording.</p>
+            </section>
+
+            <div class="player" id="player" role="group" aria-label="replay controls">
+                <div class="wheel">
+                    <button type="button" class="w-up" data-act="faster" aria-label="faster" data-tip="faster">
+                        <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M6 2h2v4h4v2H8v4H6V8H2V6h4z"/></svg></button>
+                    <button type="button" class="w-prev" data-act="prev" aria-label="previous step" data-tip="previous step">
+                        <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M7 2v10L1 7zm6 0v10L7 7z"/></svg></button>
+                    <button type="button" class="w-play" data-act="play" aria-label="play"></button>
+                    <button type="button" class="w-next" data-act="next" aria-label="next step" data-tip="next step">
+                        <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M1 2v10l6-5zm6 0v10l6-5z"/></svg></button>
+                    <button type="button" class="w-down" data-act="slower" aria-label="slower" data-tip="slower">
+                        <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 6h10v2H2z"/></svg></button>
+                </div>
+                <div class="display">
+                    <div class="marquee"><span id="now">the dinner, replayed</span></div>
+                    <div class="seeking">
+                        <span id="pos">1/7</span>
+                        <input type="range" id="seek" min="0" max="6" step="1" value="0" aria-label="step">
+                        <span id="rate">1×</span>
+                    </div>
+                    <div class="extras">
+                        <button type="button" data-act="restart" aria-label="play from the start" data-tip="from the start">
+                            <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M7 2a5 5 0 1 1-4.6 3h2.2A3 3 0 1 0 7 4v2L3 3l4-3z"/></svg></button>
+                        <button type="button" data-act="room" aria-label="next visit to the agents' room" data-tip="to the agents' room">
+                            <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2h10v7H6l-3 3V9H2z"/></svg></button>
+                        <button type="button" data-act="shuffle" aria-label="a random step" data-tip="a random step">
+                            <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M1 3h3l5 6h2V7l3 3-3 3v-2H8L3 5H1zm0 6h2l1.2-1.4 1.2 1.5L4 11H1zm7-6h3V1l3 3-3 3V5H9L7.8 6.4 6.6 4.9z"/></svg></button>
+                    </div>
+                </div>
+            </div>
+
+            <section class="box">
+                <h2>site map <canvas class="px" data-sprite="coin"></canvas></h2>
+                <ul class="inner list">
+                    <li>HOME: <em>you are here! <a href="#start">get your agent</a> at the top</em></li>
+                    <li><a href="flow.html">THE SPLIT</a>: <em>receipt to settled in eight steps, plus a calculator that uses the agents' own math</em></li>
+                    <li><a href="vault.html">THE VAULT</a>: <em>how an agent pays with your card without ever seeing it</em></li>
+                    <li><a href="stack.html">UNDER THE HOOD</a>: <em>three compartments and three sponsors</em></li>
+                    <li><a href="faq.html">FAQ</a>: <em>questions you might have</em></li>
+                    <li><a href="credits.html">CREDITS</a>: <em>who made this, and what we did not make</em></li>
+                </ul>
+            </section>
+
+            <section class="box bare">
+                <canvas class="banner" data-banner="lens" width="728" height="128" role="img" aria-label="HackNC 2026: Photon, Gemini, Nessie"></canvas>
+            </section>
+        </main>
+
+        <!-- right -->
+        <aside aria-label="links and numbers">
+            <section class="box">
+                <h2>find us <canvas class="px" data-sprite="heart"></canvas></h2>
+                <div class="inner">
+                    <p><canvas class="px" data-sprite="wiggle"></canvas> <a href="https://github.com/KrishNaikGaunekar/groupcart" target="_blank" rel="noopener">the code on github</a></p>
+                    <p><canvas class="px" data-sprite="wave"></canvas> <a href="https://github.com/KrishNaikGaunekar/groupcart/blob/main/docs/SETUP.md" target="_blank" rel="noopener">set it up yourself</a></p>
+                    <hr>
+                    <p class="center">
+                        <button type="button" class="togglebutton" data-highfive>high five</button><br>
+                        <span class="small">the minion has had <span id="fives">0</span> from you</span>
+                    </p>
+                </div>
+            </section>
+
+            <section class="box">
+                <h2>lilacs.jpg <canvas class="px" data-sprite="lilac"></canvas></h2>
+                <span class="dither" tabindex="0" title="hover to un-dither">
+                    <img src="assets/img/lilacs.jpg" alt="" width="356" height="356" loading="lazy">
+                    <img class="dots" src="assets/img/lilacs-dither.png" alt="A cluster of pale lilac blossoms, dithered" width="178" height="178">
+                </span>
+                <i class="ring"></i>
+            </section>
+
+            <section class="box">
+                <h2>the numbers <canvas class="px" data-sprite="banana"></canvas></h2>
+                <div class="inner stats">
+                    <span title="what the model can call: profile, contacts, open, claim, status, finalize, pay, cancel, balance">split tools:</span><span class="digits" data-digits="09"></span>
+                    <span title="app, vault and site suites; all three run in about a second">tests passing:</span><span class="digits" data-digits="32"></span>
+                    <span title="every share sums to the bill, exactly">cents lost:</span><span class="digits" data-digits="00"></span>
+                    <span title="money is integer cents, start to finish">floats on money:</span><span class="digits" data-digits="00"></span>
+                </div>
+            </section>
+
+            <section class="box">
+                <div class="calendar" data-year="2026" data-month="10" data-hack="10,11" data-hack-label="HackNC 2026"></div>
+                <p class="countdown" data-deadline="2026-10-11T10:00:00-04:00" data-label="devpost in" data-after="submitted. hands off the keyboard."></p>
+            </section>
+
+            <section class="box">
+                <h2>tracks <canvas class="px" data-sprite="rope"></canvas></h2>
+                <div class="inner">
+                    <div class="badges">
+                        <span class="badge" title="iMessage through Photon Spectrum"><span><b>photon</b>imessage agent</span></span>
+                        <span class="badge lilac" title="Gemini reads the receipt photo and runs the agent"><span><b>gemini</b>the model</span></span>
+                        <span class="badge ink" title="Capital One Nessie: accounts and transfers"><span><b>nessie</b>capital one</span></span>
+                        <span class="badge gold" title="October 10 and 11, Chapel Hill"><span><b>hacknc</b>2026</span></span>
+                        <span class="badge" title="app/split/money.py"><span><b>integer</b>cents only</span></span>
+                        <span class="badge lilac" title="vault/cardvault"><span><b>no cards</b>in the model</span></span>
+                    </div>
+                </div>
+            </section>
+        </aside>
+    </div>
+
+    <div class="pagedoll" id="pagedoll">
+        <div class="speech" id="speech">
+            <span>Bello! Welcome to GroupCart!</span>
+            <div class="choices">
+                <a href="flow.html">How does a split work?</a>
+                <a href="vault.html">Is my card safe?</a>
+                <a href="faq.html">I have questions.</a>
+            </div>
+        </div>
+        <canvas class="minion" id="minion" width="136" height="142"></canvas>
+    </div>
+
+    <footer class="ending">
+        <span class="barcode" aria-hidden="true"></span>
+        established 2026.10.10
+        <span class="barcode" aria-hidden="true"></span>
+    </footer>
+
+    <script src="js/sprites.js"></script>
+    <script src="js/minion-sprite.js"></script>
+    <script src="js/minion.js"></script>
+    <script src="js/site.js"></script>
+    <script src="js/banners.js"></script>
+    <script src="js/replay.js"></script>
+    <script src="js/signup.js"></script>
+</body>
+
+</html>

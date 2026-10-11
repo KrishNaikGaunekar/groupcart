@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>faq · groupcart</title>
+    <meta name="description" content="Questions and answers about GroupCart: who does the math, how you pay, what is real, and what we built.">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='3' y='1' width='10' height='14' rx='5' fill='%23f7d840'/%3E%3Cpath d='M3 10h10v1a5 4 0 0 1-10 0z' fill='%234f7fc0'/%3E%3Crect x='2' y='5' width='12' height='2' fill='%232a2525'/%3E%3Ccircle cx='8' cy='6' r='3.4' fill='%23cfd8db'/%3E%3Ccircle cx='8' cy='6' r='2.2' fill='%23fff'/%3E%3Ccircle cx='8' cy='6' r='1' fill='%234a2f1b'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="page-faq">
+    <script src="js/boot.js"></script>
+    <div class="crt" aria-hidden="true"></div>
+
+    <header class="masthead">
+        <h1><a class="title" href="index.html">groupcart</a></h1>
+    </header>
+    <nav class="nav" aria-label="pages">
+        <a class="navbutton" href="index.html">home</a>
+        <a class="navbutton" href="flow.html">the split</a>
+        <a class="navbutton" href="vault.html">the vault</a>
+        <a class="navbutton" href="stack.html">under the hood</a>
+        <a class="navbutton" href="faq.html" aria-current="page"><canvas class="px" data-sprite="disc"></canvas>faq</a>
+        <a class="navbutton" href="credits.html">credits</a>
+    </nav>
+
+    <div class="duo">
+        <aside aria-label="the short version">
+            <section class="box">
+                <h2>the short version <canvas class="px" data-sprite="wave"></canvas></h2>
+                <ul class="inner list numbered">
+                    <li>Text your agent a photo of the receipt.</li>
+                    <li>The agents ask everyone what they had.</li>
+                    <li>Everyone is told what they owe, to the cent.</li>
+                </ul>
+            </section>
+
+            <section class="box">
+                <h2>white-lilac.jpg <canvas class="px" data-sprite="lilac"></canvas></h2>
+                <span class="dither" tabindex="0" title="hover to un-dither">
+                    <img src="assets/img/white-lilac.jpg" alt="" width="356" height="356" loading="lazy">
+                    <img class="dots" src="assets/img/white-lilac-dither.png" alt="White lilac blossoms, close up, dithered" width="178" height="178">
+                </span>
+                <i class="ring"></i>
+            </section>
+
+            <section class="box">
+                <h2>ask us <canvas class="px" data-sprite="heart"></canvas></h2>
+                <div class="inner">
+                    <p>Not answered here? <a href="https://github.com/KrishNaikGaunekar/groupcart/issues" target="_blank" rel="noopener">Open an issue</a> on the repo, or find us
+                        at the HackNC judging tables on Sunday.</p>
+                </div>
+            </section>
+
+            <section class="box">
+                <h2>lilac.jpg <canvas class="px" data-sprite="lilac"></canvas></h2>
+                <span class="dither" tabindex="0" title="hover to un-dither">
+                    <img src="assets/img/lilac.jpg" alt="" width="356" height="356" loading="lazy">
+                    <img class="dots" src="assets/img/lilac-dither.png" alt="A single lilac flower, close up, dithered" width="178" height="178">
+                </span>
+                <i class="ring"></i>
+            </section>
+        </aside>
+
+        <main>
+            <section class="box">
+                <h2>f.a.q. <canvas class="px" data-sprite="dots"></canvas></h2>
+                <div class="inner">
+                    <p>questions you might have. click one.</p>
+                    <details>
+                        <summary>what is this?</summary>
+                        <p>A way to split a bill by texting. One person sends their agent a photo of the receipt and says who was there. Everyone gets a text with exactly what they owe, and a way to pay.</p>
+                    </details>
+                    <details>
+                        <summary>do my friends need to install anything?</summary>
+                        <p>No app. Each person texts their own agent in iMessage.</p><p>Today each phone has to be registered on our Photon project first, and each person has to text their agent once, because a shared Photon line can only text people who texted it first.</p>
+                    </details>
+                    <details>
+                        <summary>who does the math?</summary>
+                        <p>Not the model. The model reads the receipt and decides which tool to call. The tools split everything in integer cents, with largest-remainder rounding, so the shares always sum to the bill. Try it on <a href="flow.html">the split</a> page.</p>
+                    </details>
+                    <details>
+                        <summary>what if two of us shared something?</summary>
+                        <p>You both say so and it divides itself. "I had half" works. So does "one of the two beers".</p>
+                    </details>
+                    <details>
+                        <summary>what about things nobody claims?</summary>
+                        <p>They are split evenly across everyone, or the payer absorbs them. The payer picks.</p>
+                    </details>
+                    <details>
+                        <summary>how do i pay?</summary>
+                        <p>Reply "pay" and your agent sends your share from your Capital One account. Or pay with Venmo, Zelle, PayPal or Cash App and tell your agent; that is recorded on your word.</p>
+                    </details>
+                    <details>
+                        <summary>is it real money?</summary>
+                        <p>No. Nessie is Capital One's sandbox API, so the accounts and transfers are mock ones. The Venmo links are real links, but we do not move money there.</p>
+                    </details>
+                    <details>
+                        <summary>does the agent see my card number?</summary>
+                        <p>No. It goes into an encrypted vault before the model runs, and the model gets a note with the brand and last four digits. The details and the limits are on <a href="vault.html">the vault</a> page.</p>
+                    </details>
+                    <details>
+                        <summary>why is the agents' room not a real group chat?</summary>
+                        <p>Shared Photon lines cannot create group chats, and a group of agents would need one phone number each. So the room is a channel in the ledger. The agents behave the same; you just watch it in a terminal instead of a thread.</p>
+                    </details>
+                    <details>
+                        <summary>can i try it right now?</summary>
+                        <p>Play with the calculator on <a href="flow.html">the split</a> page, or clone the repo and run <code>scripts/demo_cli.sh</code>: four people, one receipt, the real model, no phones.</p><p>Signing up with just a phone number is planned, not built.</p>
+                    </details>
+                    <details>
+                        <summary>what does it cost to run?</summary>
+                        <p>A four-person dinner is about 30 Gemini requests. The free tier is about 20 a day per model per key, so the runtime falls through six models before it gives up.</p>
+                    </details>
+                    <details>
+                        <summary>what did you build this weekend, and what did you not?</summary>
+                        <p>We wrote the split plugin, the card vault, the scripts, the docs and this site. The agent runtime underneath is open source and vendored: Hermes Agent by Nous Research. More on <a href="credits.html">credits</a>.</p>
+                    </details>
+                    <details>
+                        <summary>who is the yellow guy?</summary>
+                        <p>Our agent's nickname is Minion. The pixel art is Justin's. A script cut the picture into parts and a few hundred lines of JavaScript move them: it waves, walks when you scroll and watches your mouse. Poke it.</p><p>It is a fan drawing. The Minions belong to Universal and Illumination, and we are not affiliated with either.</p>
+                    </details>
+                    <details>
+                        <summary>why does the site look like this?</summary>
+                        <p>Because a bill-splitting agent does not have to look like a bank. And because lilacs.</p>
+                    </details>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="pagedoll" id="pagedoll" data-greeting="Questions! I love questions. Click one and I will pretend I knew the answer all along.">
+        <div class="speech" id="speech">
+            <span>Bello!</span>
+            <div class="choices">
+                <a href="index.html">Take me home.</a>
+            </div>
+        </div>
+        <canvas class="minion" id="minion" width="136" height="142"></canvas>
+    </div>
+
+    <footer class="ending">
+        <span class="barcode" aria-hidden="true"></span>
+        established 2026.10.10
+        <span class="barcode" aria-hidden="true"></span>
+    </footer>
+
+    <script src="js/sprites.js"></script>
+    <script src="js/minion-sprite.js"></script>
+    <script src="js/minion.js"></script>
+    <script src="js/site.js"></script>
+</body>
+
+</html>

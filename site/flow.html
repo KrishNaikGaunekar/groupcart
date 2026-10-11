@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>the split · groupcart</title>
+    <meta name="description" content="How a GroupCart split works, from a photo of the receipt to everyone paid back, with a calculator that uses the agents' own share math.">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='3' y='1' width='10' height='14' rx='5' fill='%23f7d840'/%3E%3Cpath d='M3 10h10v1a5 4 0 0 1-10 0z' fill='%234f7fc0'/%3E%3Crect x='2' y='5' width='12' height='2' fill='%232a2525'/%3E%3Ccircle cx='8' cy='6' r='3.4' fill='%23cfd8db'/%3E%3Ccircle cx='8' cy='6' r='2.2' fill='%23fff'/%3E%3Ccircle cx='8' cy='6' r='1' fill='%234a2f1b'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="page-flow bg-hall">
+    <script src="js/boot.js"></script>
+    <div class="crt" aria-hidden="true"></div>
+
+    <header class="masthead">
+        <h1><a class="title" href="index.html">groupcart</a></h1>
+    </header>
+    <nav class="nav" aria-label="pages">
+        <a class="navbutton" href="index.html">home</a>
+        <a class="navbutton" href="flow.html" aria-current="page"><canvas class="px" data-sprite="disc"></canvas>the split</a>
+        <a class="navbutton" href="vault.html">the vault</a>
+        <a class="navbutton" href="stack.html">under the hood</a>
+        <a class="navbutton" href="faq.html">faq</a>
+        <a class="navbutton" href="credits.html">credits</a>
+    </nav>
+
+    <div class="duo">
+        <aside aria-label="the cast">
+            <section class="box">
+                <h2>the cast <canvas class="px" data-sprite="wiggle"></canvas></h2>
+                <ul class="inner list">
+                    <li>BOB: <em>paid the bill. California roll and a Dr Pepper.</em></li>
+                    <li>JOHN: <em>spicy ramen, one Sapporo, half the edamame.</em></li>
+                    <li>SUSAN: <em>salmon nigiri, the other half of the edamame.</em></li>
+                    <li>CHARLIE: <em>chicken katsu, the other Sapporo.</em></li>
+                    <li>FOUR AGENTS: <em>one each. An agent only ever texts its own human.</em></li>
+                </ul>
+            </section>
+
+            <section class="box">
+                <h2>white-lilac.jpg <canvas class="px" data-sprite="lilac"></canvas></h2>
+                <span class="dither" tabindex="0" title="hover to un-dither">
+                    <img src="assets/img/white-lilac.jpg" alt="" width="356" height="356" loading="lazy">
+                    <img class="dots" src="assets/img/white-lilac-dither.png" alt="White lilac blossoms, close up, dithered" width="178" height="178">
+                </span>
+                <i class="ring"></i>
+            </section>
+
+            <section class="box">
+                <h2>before the demo <canvas class="px" data-sprite="dots"></canvas></h2>
+                <ul class="inner list">
+                    <li>People must text their agent first. A shared Photon line can only message someone who messaged it.</li>
+                    <li>Friends are found by first name. Two Johns means the agent asks for a phone number.</li>
+                    <li>Venmo, Zelle, PayPal and Cash App payments are taken on the person's word. Only Capital One transfers are verified.</li>
+                    <li>Cancelling does not refund money already sent.</li>
+                    <li>One dinner is about 30 Gemini requests. The free tier is about 20 a day per model.</li>
+                </ul>
+            </section>
+
+            <section class="box">
+                <h2>bunch.jpg <canvas class="px" data-sprite="lilac"></canvas></h2>
+                <span class="dither" tabindex="0" title="hover to un-dither">
+                    <img src="assets/img/bunch.jpg" alt="" width="356" height="356" loading="lazy">
+                    <img class="dots" src="assets/img/bunch-dither.png" alt="A bunch of blue-violet lilacs against dark leaves, dithered" width="178" height="178">
+                </span>
+                <i class="ring"></i>
+            </section>
+        </aside>
+
+        <main>
+            <section class="box">
+                <h2>receipt to settled <canvas class="px" data-sprite="receipt"></canvas></h2>
+                <div class="inner">
+                    <p>Bob paid for dinner with John, Susan and Charlie. The code is <code>app/split/flow.py</code>; it is
+                        the whole product in one file.</p>
+                    <div class="step"><span class="n">01</span>
+                        <div><b>Bob texts his agent</b> a photo of the receipt and who was there.<br>
+                            <span class="quote me">dinner with John, Susan and Charlie, I had the California roll and the Dr Pepper</span></div>
+                    </div>
+                    <div class="step"><span class="n">02</span>
+                        <div><b>Bob's agent reads the photo:</b> every line, the tax, the tip and the total. Then it calls
+                            <code>split_open</code>.</div>
+                    </div>
+                    <div class="step"><span class="n">03</span>
+                        <div><b>The agents' room opens.</b> <code>split_open</code> creates the split in the ledger and posts the
+                            receipt, the itemized list and what Bob had.<br>
+                            <span class="quote">Agents: ask your people what they had.</span></div>
+                    </div>
+                    <div class="step"><span class="n">04</span>
+                        <div><b>Each agent texts its own human</b> the receipt and the numbered list.<br>
+                            <span class="quote">what did you have?</span></div>
+                    </div>
+                    <div class="step"><span class="n">05</span>
+                        <div><b>John answers</b> in his own words. His agent calls <code>split_claim</code> and reports to the room.<br>
+                            <span class="quote me">the spicy ramen, one of the Sapporos, and I split the edamame with Susan</span></div>
+                    </div>
+                    <div class="step"><span class="n">06</span>
+                        <div><b>The last answer finalizes the split.</b> Shares are computed and every agent texts its human
+                            what they owe, with the breakdown and ways to pay.</div>
+                    </div>
+                    <div class="step"><span class="n">07</span>
+                        <div><b>John pays.</b> <code>split_pay</code> moves the money from John's Capital One account to Bob's. Or John
+                            says he paid another way and that is recorded instead. Bob's agent tells Bob either way.<br>
+                            <span class="quote me">pay</span></div>
+                    </div>
+                    <div class="step"><span class="n">08</span>
+                        <div><b>Settled.</b> When everyone has paid, Bob is told.<br>
+                            <span class="quote">everyone's paid up for Sushi Nikko 🎉</span></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="box">
+                <h2>try the math <canvas class="px" data-sprite="coin"></canvas></h2>
+                <div class="inner">
+                    <p>The Sushi Nikko receipt. Click a letter to say who had what; click the Sapporo again for the second
+                        bottle. This runs the same rules as <code>app/split/splitter.py</code>, in whole cents, in your browser.</p>
+                    <div id="calc">
+                        <p class="muted">The calculator needs JavaScript.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="box">
+                <h2>how shares are computed <canvas class="px" data-sprite="sparkle"></canvas></h2>
+                <ul class="inner list">
+                    <li>An item goes to whoever claimed it. Two people claiming the same item split it evenly.</li>
+                    <li>"I had half" is a stated portion. Open claims share what the stated portions leave.</li>
+                    <li>A line like "2× Sapporo" is claimed by count.</li>
+                    <li>Items nobody claimed are split evenly across everyone, or absorbed by the payer.</li>
+                    <li>Tax, tip, fees and discounts follow each person's item subtotal, proportionally.</li>
+                    <li>If the receipt's lines do not add up to its total, the difference becomes a visible adjustment, so the
+                        group still covers what was actually charged.</li>
+                    <li>Rounding is by largest remainder. The shares always sum to the bill, to the cent.</li>
+                </ul>
+            </section>
+
+            <section class="box">
+                <h2>tools the model can call <canvas class="px" data-sprite="cart"></canvas></h2>
+                <div class="inner">
+                    <table class="table">
+                        <thead><tr><th>tool</th><th>who</th><th>what it does</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>profile_set</code></td><td>anyone</td><td>Save their name and Venmo, Zelle, PayPal or Cash App handles</td></tr>
+                            <tr><td><code>contact_add</code></td><td>payer</td><td>Remember a friend's phone number under a name</td></tr>
+                            <tr><td><code>split_open</code></td><td>payer</td><td>Open a split from a receipt, or a prepay for an order not yet paid</td></tr>
+                            <tr><td><code>split_claim</code></td><td>member</td><td>Record what their human had</td></tr>
+                            <tr><td><code>split_status</code></td><td>anyone</td><td>Who answered, who owes, who paid, and the room transcript</td></tr>
+                            <tr><td><code>split_finalize</code></td><td>payer</td><td>Stop waiting and send shares now</td></tr>
+                            <tr><td><code>split_pay</code></td><td>member</td><td>Pay by Capital One transfer, or record a payment made elsewhere</td></tr>
+                            <tr><td><code>split_cancel</code></td><td>payer</td><td>Cancel and tell everyone</td></tr>
+                            <tr><td><code>bank_balance</code></td><td>anyone</td><td>Capital One balance and recent activity</td></tr>
+                        </tbody>
+                    </table>
+                    <hr>
+                    <p>The model never computes a share and never texts another person. The tools do both.</p>
+                </div>
+            </section>
+
+            <section class="box">
+                <h2>why the room is not a group chat <canvas class="px" data-sprite="phone"></canvas></h2>
+                <div class="inner">
+                    <p>The brief was for the payer's agent to create an iMessage group containing the other agents. Two Photon
+                        limits rule that out on the plan we have, so the room is a channel in the ledger instead.</p>
+                    <ul class="list">
+                        <li>Shared lines cannot create group chats. That needs a dedicated Business line.</li>
+                        <li>A group of agents needs one phone number per agent. We have one project.</li>
+                    </ul>
+                    <p>The behaviour is the same: agents post to a shared room, each reads it, each talks to its own human.
+                        What is missing is seeing it as a native group thread. Watch it live instead:</p>
+                    <div class="command">
+                        <pre>./gc split room --watch</pre>
+                        <button type="button" class="togglebutton" data-copy>copy</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="pagedoll" id="pagedoll" data-greeting="This is the split! One receipt, eight steps. Poke the letters in the calculator and watch me not do any math.">
+        <div class="speech" id="speech">
+            <span>Bello!</span>
+            <div class="choices">
+                <a href="index.html">Take me home.</a>
+            </div>
+        </div>
+        <canvas class="minion" id="minion" width="136" height="142"></canvas>
+    </div>
+
+    <footer class="ending">
+        <span class="barcode" aria-hidden="true"></span>
+        established 2026.10.10
+        <span class="barcode" aria-hidden="true"></span>
+    </footer>
+
+    <script src="js/sprites.js"></script>
+    <script src="js/minion-sprite.js"></script>
+    <script src="js/minion.js"></script>
+    <script src="js/site.js"></script>
+    <script src="js/splitter.js"></script>
+    <script src="js/calc.js"></script>
+</body>
+
+</html>

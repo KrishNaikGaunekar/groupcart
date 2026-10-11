@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>under the hood · groupcart</title>
+    <meta name="description" content="GroupCart's architecture: a vendored agent runtime, our bill-splitting plugin and our card vault, on Photon, Gemini and Capital One Nessie.">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='3' y='1' width='10' height='14' rx='5' fill='%23f7d840'/%3E%3Cpath d='M3 10h10v1a5 4 0 0 1-10 0z' fill='%234f7fc0'/%3E%3Crect x='2' y='5' width='12' height='2' fill='%232a2525'/%3E%3Ccircle cx='8' cy='6' r='3.4' fill='%23cfd8db'/%3E%3Ccircle cx='8' cy='6' r='2.2' fill='%23fff'/%3E%3Ccircle cx='8' cy='6' r='1' fill='%234a2f1b'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="page-stack bg-hall">
+    <script src="js/boot.js"></script>
+    <div class="crt" aria-hidden="true"></div>
+
+    <header class="masthead">
+        <h1><a class="title" href="index.html">groupcart</a></h1>
+    </header>
+    <nav class="nav" aria-label="pages">
+        <a class="navbutton" href="index.html">home</a>
+        <a class="navbutton" href="flow.html">the split</a>
+        <a class="navbutton" href="vault.html">the vault</a>
+        <a class="navbutton" href="stack.html" aria-current="page"><canvas class="px" data-sprite="disc"></canvas>under the hood</a>
+        <a class="navbutton" href="faq.html">faq</a>
+        <a class="navbutton" href="credits.html">credits</a>
+    </nav>
+
+    <div class="duo">
+        <aside aria-label="sponsors and commands">
+            <section class="box">
+                <h2>three sponsors <canvas class="px" data-sprite="rope"></canvas></h2>
+                <div class="inner">
+                    <h3>Photon Spectrum</h3>
+                    <p>iMessage, in and out. Every friend texts a number and the gateway keeps one session per person.</p>
+                    <h3>Gemini</h3>
+                    <p>The model. It reads the receipt photo and picks which tool to call. It never does the arithmetic.</p>
+                    <h3>Capital One Nessie</h3>
+                    <p>Accounts and transfers. "pay" moves money from one sandbox account to another.</p>
+                </div>
+            </section>
+
+            <section class="box">
+                <h2>lilacs.jpg <canvas class="px" data-sprite="lilac"></canvas></h2>
+                <span class="dither" tabindex="0" title="hover to un-dither">
+                    <img src="assets/img/lilacs.jpg" alt="" width="356" height="356" loading="lazy">
+                    <img class="dots" src="assets/img/lilacs-dither.png" alt="A cluster of pale lilac blossoms, dithered" width="178" height="178">
+                </span>
+                <i class="ring"></i>
+            </section>
+
+            <section class="box">
+                <h2>commands <canvas class="px" data-sprite="cart"></canvas></h2>
+                <div class="inner">
+                    <p class="small">provision or refresh:</p>
+                    <div class="command">
+                        <pre>scripts/setup.sh</pre>
+                        <button type="button" class="togglebutton" data-copy>copy</button>
+                    </div>
+                    <p class="small">the split logic's tests:</p>
+                    <div class="command">
+                        <pre>python3 -m unittest discover -s app/tests</pre>
+                        <button type="button" class="togglebutton" data-copy>copy</button>
+                    </div>
+                    <p class="small">check a plugin loads:</p>
+                    <div class="command">
+                        <pre>./gc plugins doctor app/split</pre>
+                        <button type="button" class="togglebutton" data-copy>copy</button>
+                    </div>
+                    <p class="small">this website:</p>
+                    <div class="command">
+                        <pre>scripts/site.sh</pre>
+                        <button type="button" class="togglebutton" data-copy>copy</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="box">
+                <h2>things that bite <canvas class="px" data-sprite="banana"></canvas></h2>
+                <ul class="inner list">
+                    <li>Gemini's free tier is about 20 requests a day per model per key.</li>
+                    <li>One consumer per Photon project. Never two gateways at once.</li>
+                    <li>Shared Photon lines cannot create group chats or text someone first.</li>
+                    <li>Anyone who texts the number gets an agent, so the iMessage toolset has no terminal, file or code tools.</li>
+                </ul>
+            </section>
+        </aside>
+
+        <main>
+            <section class="box">
+                <h2>three compartments <canvas class="px" data-sprite="hop"></canvas></h2>
+                <div class="inner">
+                    <div class="diagram">
+                        <div class="node slim"><b>imessage</b>each friend texts their own agent</div>
+                        <div class="wire"></div>
+                        <div class="node slim"><b>photon spectrum</b>the cloud that carries the texts</div>
+                        <div class="wire"></div>
+                        <div class="node theirs"><b>core/ · the agent runtime</b>Photon adapter and sidecar · a gateway with one session
+                            per person · the agent loop, calling Gemini, which reads receipt photos natively · browser tools and an
+                            encrypted vault store</div>
+                        <div class="wire"></div>
+                        <div class="fork">
+                            <div class="node ours"><b>app/split/</b>receipt → agents' room → shares → payment · the ledger (SQLite) ·
+                                Capital One Nessie</div>
+                            <div class="node ours"><b>vault/cardvault/</b>card intake over text · per-person scoping · the
+                                split-or-solo checkout gate</div>
+                        </div>
+                    </div>
+                    <div class="legend">
+                        <span><i style="background: var(--lilac-soft)"></i>ours</span>
+                        <span><i style="background: var(--mint-glass); border-style: dashed"></i>vendored, not ours</span>
+                    </div>
+                    <hr>
+                    <p>Our code reaches the runtime only through its plugin API. The two plugins do not import each other: the
+                        vault asks the split plugin one question, "has everyone paid on this split?", through the tool registry.</p>
+                </div>
+            </section>
+
+            <section class="box">
+                <h2>one runtime, many agents <canvas class="px" data-sprite="wiggle"></canvas></h2>
+                <div class="inner">
+                    <p>Every friend texts the same Photon project. The gateway keeps a separate session per person, and a hook
+                        starts every turn by telling the model whose agent it is and what is pending for that person.</p>
+                    <p>So "each person has their own agent" is true at the level that matters: separate conversation, separate
+                        identity, separate money, separate cards. What they share is the ledger, which is how one agent's
+                        question reaches another.</p>
+                </div>
+            </section>
+
+            <section class="box">
+                <h2>real or simulated <canvas class="px" data-sprite="sparkle"></canvas></h2>
+                <div class="inner">
+                    <table class="table wrap">
+                        <thead><tr><th>piece</th><th>state</th></tr></thead>
+                        <tbody>
+                            <tr><td>Receipt reading, tool calls, the whole split flow</td><td>Real. <code>scripts/demo_cli.sh</code> runs it through Gemini</td></tr>
+                            <tr><td>Nessie accounts, transfers, purchases</td><td>Real against the Nessie sandbox when a key is set; otherwise simulated in the ledger</td></tr>
+                            <tr><td>Texts between an agent and its own human</td><td>Real over Photon when the gateway runs</td></tr>
+                            <tr><td>The agents' room</td><td>A ledger-backed channel, not an iMessage group</td></tr>
+                            <tr><td>Card intake, ownership, checkout gate</td><td>Real, tested inside the runtime</td></tr>
+                            <tr><td>Filling a card into a live checkout page</td><td>A runtime feature; not exercised by us end to end</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="box">
+                <h2>the ledger <canvas class="px" data-sprite="receipt"></canvas></h2>
+                <div class="inner">
+                    <p>One SQLite file. Nine tables: <code>people</code> <code>contacts</code> <code>splits</code> <code>items</code>
+                        <code>members</code> <code>claims</code> <code>room</code> <code>outbox</code> <code>kv</code>.</p>
+                    <p><code>room</code> is the agent-to-agent conversation, one row per message. <code>outbox</code> is every text an
+                        agent sent to a human, with whether it was delivered. Look at them from outside a conversation:</p>
+                    <div class="command">
+                        <pre>./gc split room --watch</pre>
+                        <button type="button" class="togglebutton" data-copy>copy</button>
+                    </div>
+                    <div class="command">
+                        <pre>./gc split outbox</pre>
+                        <button type="button" class="togglebutton" data-copy>copy</button>
+                    </div>
+                    <div class="command">
+                        <pre>./gc split people</pre>
+                        <button type="button" class="togglebutton" data-copy>copy</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="box">
+                <h2>what we wrote, what we did not <canvas class="px" data-sprite="heart"></canvas></h2>
+                <div class="inner">
+                    <p><code>app/</code>, <code>vault/</code>, <code>scripts/</code>, <code>docs/</code> and this site were written during
+                        the hackathon.</p>
+                    <p><code>core/</code> was not. It is <a href="https://github.com/NousResearch/hermes-agent" target="_blank" rel="noopener">Hermes Agent</a>
+                        by Nous Research (MIT licence), copied in and renamed to GroupCart by a script. It gives us the agent loop,
+                        the Photon iMessage adapter, browser automation and the encrypted vault store. We never edit it by hand.</p>
+                </div>
+            </section>
+
+            <section class="box">
+                <h2>next: hosted <canvas class="px" data-sprite="phone"></canvas></h2>
+                <div class="inner">
+                    <p>Plan only; not built. You enter a name and a phone number, the page shows your agent's number, and you text
+                        it. No terminal, no keys, no account anywhere else: we run one instance and hold every outside account
+                        on the server.</p>
+                    <p>One small VM, exactly one runtime replica, a persistent disk for the ledger and the vault key. The real
+                        limit is how many people one Photon project can hold.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="pagedoll" id="pagedoll" data-greeting="Under the hood! Three compartments and a hard line between them. The purple ones are ours.">
+        <div class="speech" id="speech">
+            <span>Bello!</span>
+            <div class="choices">
+                <a href="index.html">Take me home.</a>
+            </div>
+        </div>
+        <canvas class="minion" id="minion" width="136" height="142"></canvas>
+    </div>
+
+    <footer class="ending">
+        <span class="barcode" aria-hidden="true"></span>
+        established 2026.10.10
+        <span class="barcode" aria-hidden="true"></span>
+    </footer>
+
+    <script src="js/sprites.js"></script>
+    <script src="js/minion-sprite.js"></script>
+    <script src="js/minion.js"></script>
+    <script src="js/site.js"></script>
+</body>
+
+</html>
