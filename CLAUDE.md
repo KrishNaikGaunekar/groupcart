@@ -7,7 +7,8 @@ iMessage; the agents coordinate among themselves, each asks its own human what t
 told what they owe and can pay. HackNC 2026, Oct 10–11.
 
 Sponsor tracks we are entering: **Photon** (iMessage agent, must integrate Spectrum), **Gemini** (the
-model), **Capital One Nessie** (accounts and payments). No website yet; the product is the agent.
+model), **Capital One Nessie** (accounts and payments). The product is the agent; `site/` is a static website
+that shows it off.
 
 ## What matters most, in order
 
@@ -34,8 +35,9 @@ Read in this order. When two sources disagree, the higher one wins.
 | `app/runtime/` | Ours | Runtime config and the agent persona that `scripts/setup.sh` installs |
 | `app/spectrum-bot/` | Ours | The original TypeScript Spectrum bot. Kept working; not where new work goes |
 | `vault/cardvault/` | Ours | Card intake over text, per-person scoping, checkout gate |
+| `site/` | Ours | The website: static HTML, one stylesheet, plain scripts. No build step, no dependencies |
 | `core/` | Vendored | Hermes Agent, renamed GroupCart. **Never hand-edit.** Change it only via `core-patches/` |
-| `scripts/` | Ours | `setup.sh`, `demo_cli.sh`, `rebrand_core.py` |
+| `scripts/` | Ours | `setup.sh`, `demo_cli.sh`, `site.sh`, `minion_sprite.py`, `rebrand_core.py` |
 | `gc` | Ours | Launcher: runs the runtime against `.groupcart-home/` |
 
 - New behaviour is a plugin in `app/` or `vault/`, using the runtime's plugin API. If you are about to
@@ -49,13 +51,16 @@ Read in this order. When two sources disagree, the higher one wins.
 scripts/setup.sh                                   # provision or refresh .groupcart-home
 python3 -m unittest discover -s app/tests          # split logic
 python3 -m unittest discover -s vault/tests        # card vault logic
+python3 -m unittest discover -s site/tests         # the site's calculator against the real share math
 scripts/demo_cli.sh                                # whole dinner, real model, no phones (~30 Gemini requests)
 ./gc gateway run                                   # the live iMessage agent
 ./gc split room --watch                            # watch the agents talk
 ./gc plugins doctor app/split                      # check a plugin loads
+scripts/site.sh                                    # the website, on http://localhost:4173
 ```
 
 Run both test suites before every commit that touches `app/` or `vault/`. They take under a second.
+Run `site/tests` as well when you touch the share math or `site/js/`.
 
 ## Things that will bite you
 
@@ -72,6 +77,10 @@ Run both test suites before every commit that touches `app/` or `vault/`. They t
   when writing tool descriptions.
 - **No card number in any string that reaches the model, a log, or a file.** Only `vault/cardvault/store.py`
   handles secret values. Tests use the published test number `4242 4242 4242 4242`.
+- **The site's calculator is a second copy of the share math.** `site/js/splitter.js` is a port of
+  `app/split/splitter.py` and `money.allocate`. Change one, change the other; `site/tests` compares them.
+- **The site loads nothing from another host.** Fonts and pictures are in `site/assets/`, with their
+  licences in `site/assets/CREDITS.md`. Do not hot-link, and do not add an image without adding its source.
 - Always go through `./gc` or `scripts/setup.sh`. A system `uv` or `pip` will not parse the runtime's lockfile.
 
 ## Git

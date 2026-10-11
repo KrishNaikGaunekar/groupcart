@@ -67,6 +67,25 @@ In another terminal, for the projector:
 Only one process may hold a Photon project's message stream. Do not run `./gc gateway run` and the
 TypeScript bot in `app/spectrum-bot` against the same project at the same time.
 
+## The website
+
+```bash
+scripts/site.sh
+```
+
+Serves `site/` on <http://localhost:4173> (pass another port as the first argument). It is static files
+with no build step and nothing loaded from another host, so it can be dropped onto any static host as
+it is. It needs no keys and does not touch the runtime.
+
+To try the site's "get your agent" form on a laptop, run the signup endpoint by itself in dry-run mode
+(it never calls Photon and hands back a made-up number):
+
+```bash
+GROUPCART_SPLIT_DB=/tmp/gc-signup.db GROUPCART_SIGNUP_PORT=8787 GROUPCART_INVITE_CODE=test GROUPCART_SIGNUP_DRY_RUN=1 GROUPCART_SIGNUP_ORIGIN=http://localhost:4173 PYTHONPATH=app python3 -m split.signup
+```
+
+Then, in the browser console on the local site, point the form at it: `localStorage.setItem("gc-api", "http://localhost:8787")`.
+
 ## Tests
 
 ```bash
@@ -77,7 +96,12 @@ python3 -m unittest discover -s app/tests -v
 python3 -m unittest discover -s vault/tests -v
 ```
 
-Both run on stock Python 3.11+ with no dependencies and no network.
+```bash
+python3 -m unittest discover -s site/tests -v
+```
+
+The first two run on stock Python 3.11+ with no dependencies and no network. The third runs the site's
+copy of the share math (`site/js/splitter.js`) under `node` against the Python and is skipped without it.
 
 ## Useful commands
 

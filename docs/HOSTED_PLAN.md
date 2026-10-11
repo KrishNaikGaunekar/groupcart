@@ -1,6 +1,7 @@
 # Hosted plan: "here's your agent's number, just text it"
 
-Status: plan only. Nothing here is built yet except the pieces marked *exists*.
+Status: partly built. The signup endpoint and the website's form exist and are tested on a laptop;
+nothing is hosted yet. Pieces marked *exists* are in the repo.
 
 ## The experience
 
@@ -69,15 +70,20 @@ in their dashboard by whoever owns the project).
 2. **Dockerfile** for this repo: runtime-only install, plugins linked, `app/runtime/config.yaml` baked in.
    `core/` ships its own Dockerfile to start from. Untested.
 3. **Signup API**: one endpoint wrapping the same call as `scripts/photon_users.py`, which also writes the
-   person's name into the ledger so the agent greets them by name.
+   person's name into the ledger so the agent greets them by name. *Exists:* `app/split/signup.py`. It
+   runs inside the gateway when `GROUPCART_SIGNUP_PORT` is set in `.env`, listens on localhost only, and
+   refuses everyone until `GROUPCART_INVITE_CODE` is set.
 4. **Azure VM**, Compose file, disk, HTTPS.
-5. **Website**: one form, one result screen. Tap-to-text is an `sms:` link. Not started on purpose.
+5. **Website**: one form, one result screen. Tap-to-text is an `sms:` link. *Exists:* the "get your
+   agent" box on the home page (`site/js/signup.js`). It calls `/api/signup` and `/api/health`, which the
+   host has to forward to the backend.
 6. **Gemini capacity**: billing on, or several keys. The free tier is about 20 requests a day per model.
 
 ## Things to decide
 
 - **Abuse.** The form spends a limited user slot and our Gemini quota for anyone who finds it. Gate it
-  with a hackathon invite code until capacity is sorted.
+  with a hackathon invite code until capacity is sorted. *Done:* the endpoint needs the invite code and
+  allows six tries a minute per address.
 - **Phone ownership.** Someone can enter a number that is not theirs. Low harm (the agent only replies to
   people who text it first), but it burns a slot. A texted confirmation code fixes it later.
 - **Contact card.** Two ways to make the agent show up as "Minion" with a picture: a downloadable contact
@@ -86,6 +92,10 @@ in their dashboard by whoever owns the project).
 - **The Minion picture.** The Minions are Universal's characters. A meme image of one as the face of a
   public product and a public repo is their artwork used without permission. Fine as a joke in a private
   demo; for the site and the repo, use an original mascot or have someone on the team pick and own that call.
+  *Site, Oct 10:* the site's mascot is Justin's pixel-art minion (`site/assets/img/minion-source.png`),
+  animated by `site/js/minion.js`. No Universal artwork is in the repo, but it is still a likeness of
+  their character, so the credits page calls it a fan drawing and says we are not affiliated. The
+  picture for the contact card is still open.
 
 ## Limits that stay
 

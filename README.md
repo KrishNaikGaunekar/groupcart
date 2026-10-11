@@ -19,13 +19,16 @@ and tip — plus a way to pay. Built at HackNC 2026 (Oct 10–11).
 | `app/split/` | **Ours.** The bill-splitting plugin: receipt → agents' room → shares → payment |
 | `app/spectrum-bot/` | **Ours.** The first version: a TypeScript shopping-cart bot talking to Spectrum directly |
 | `vault/cardvault/` | **Ours.** Card intake over text and the checkout gate, on top of the runtime's vault |
+| `site/` | **Ours.** The website: static pages, a replay of the demo dinner, a calculator running the same share math |
 | `core/` | Vendored open-source agent runtime (see below). Not edited by hand |
 | `docs/` | Architecture, the split protocol, the vault, setup, hackathon rules |
 | `scripts/` | Setup and the script that vendors `core/` |
 
 ## What we wrote and what we did not
 
-`app/`, `vault/`, `scripts/` and `docs/` were written during the hackathon.
+`app/`, `vault/`, `site/`, `scripts/` and `docs/` were written during the hackathon. The site's photographs
+fonts and mouse pointers are other people's, each used under its own free licence; see
+[site/assets/CREDITS.md](site/assets/CREDITS.md).
 
 `core/` was not. It is [Hermes Agent](https://github.com/NousResearch/hermes-agent) by Nous Research
 (MIT licence), copied in and renamed to GroupCart by `scripts/rebrand_core.py`. It gives us the agent
@@ -35,3 +38,9 @@ loop, the Photon iMessage adapter, browser automation and the encrypted vault st
 ## Run
 
 Setup and run instructions are in [docs/SETUP.md](docs/SETUP.md).
+
+The website needs none of that. It is static files:
+
+```bash
+scripts/site.sh        # http://localhost:4173
+```
