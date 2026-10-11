@@ -27,9 +27,15 @@
                 ? { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }
                 : { headers: { accept: "application/json" } });
             const type = response.headers.get("content-type") || "";
-            // anything that is not our JSON means there is no backend behind this copy of the site
+            // Anything that is not our backend's own JSON means nothing is behind /api here. The
+            // host answers a missing route with JSON of its own, so the shape is checked too:
+            // ours is {ok}, {agent_number}, {pending} or {error: "a sentence"}.
             if (!type.includes("json")) throw new Error("no backend");
-            return { status: response.status, data: await response.json() };
+            const data = await response.json();
+            const ours = data && typeof data === "object"
+                && (data.ok === true || data.pending === true || typeof data.agent_number === "string" || typeof data.error === "string");
+            if (!ours) throw new Error("no backend");
+            return { status: response.status, data };
         }
 
         // "+16287896827" -> "+1 (628) 789-6827"; anything else is shown as it came
@@ -91,7 +97,8 @@
         });
 
         // is anyone home? this is also how the page shows it is connected to the backend
-        call("/health").then(({ data }) => {
+        call("/health").then(({ status: code, data }) => {
+            if (code !== 200 || data.ok !== true) throw new Error("no backend");
             if (data.signups === "open") say("the line is open.", "good");
             else say("the agents are up, but signups are closed for now.");
         }).catch(() => say("the agents cannot be reached from here right now.", "bad"));
