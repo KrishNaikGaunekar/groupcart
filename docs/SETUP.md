@@ -38,7 +38,8 @@ GROUPCART_SPLIT_DRY_RUN=1 GROUPCART_SESSION_USER_ID=+19195550001 ./gc chat
 ./gc gateway run
 ```
 
-Wait for `✓ photon connected`.
+Wait for `✓ photon connected`. **Not while the [hosted backend](#the-hosted-backend) is running** on the
+same Photon project: stop that first.
 
 **Give each person an agent first.** On Photon's shared lines nobody can reach the agent until their
 phone number is registered on the project. Registering assigns them their own number to text:
@@ -85,8 +86,65 @@ npx vercel deploy --prod --scope blockdai
 ```
 
 It is not connected to GitHub, so a push does not deploy; that command does. `site/.vercelignore` lists
-what is left out. The form on the live site says "the agents cannot be reached" until a backend is
-hosted and `/api` is forwarded to it (see [HOSTED_PLAN.md](HOSTED_PLAN.md)).
+what is left out, and `site/vercel.json` forwards `/api` to the hosted backend below.
+
+## The hosted backend
+
+The gateway and the signup endpoint run on one Azure VM, so **do not run `./gc gateway run` on a laptop
+while it is up** (one consumer per Photon project). To work on the agent locally, stop the hosted one
+first and start it again when you are done.
+
+| | |
+|---|---|
+| Where | Azure for Students subscription, resource group `groupcart`, VM `groupcart` (`Standard_B2s`, Ubuntu 24.04, Canada Central) |
+| Address | `groupcart-hacknc.canadacentral.cloudapp.azure.com` (HTTPS by Caddy; only 22, 80 and 443 are open) |
+| Code | `~/groupcart`, a clone of this repo. Its `.env` is the laptop's plus `GROUPCART_SIGNUP_PORT=8787` |
+| Gateway | systemd user service `groupcart-gateway-08d77aa7`, installed by `./gc gateway install`; starts at boot |
+| Signup | served by the gateway on `127.0.0.1:8787`; Caddy (`/etc/caddy/Caddyfile`) puts it on 443; the site's `/api` forwards there |
+| State | `~/groupcart/.groupcart-home` on the VM's disk: ledger, vault, sessions. Deleting the VM deletes it |
+
+Getting in needs the VM's SSH key, `~/.ssh/groupcart_azure` on William's laptop (`ssh groupcart-azure`).
+
+Ship a change to the agent, after pushing it to `main`:
+
+```bash
+ssh groupcart-azure 'cd ~/groupcart && git pull --ff-only && systemctl --user restart groupcart-gateway-08d77aa7'
+```
+
+If `.env` or `app/runtime/config.yaml` changed, run `scripts/setup.sh` on the VM before the restart.
+
+Is it up?
+
+```bash
+curl https://groupcart-beta.vercel.app/api/health
+```
+
+```bash
+ssh groupcart-azure 'systemctl --user is-active groupcart-gateway-08d77aa7; tail -n 20 ~/groupcart/.groupcart-home/logs/gateway.log'
+```
+
+Watch the agents talk, on the hosted ledger:
+
+```bash
+ssh -t groupcart-azure 'cd ~/groupcart && ./gc split room --watch'
+```
+
+Stop or start the hosted gateway (signups stop with it):
+
+```bash
+ssh groupcart-azure 'systemctl --user stop groupcart-gateway-08d77aa7'
+```
+
+```bash
+ssh groupcart-azure 'systemctl --user start groupcart-gateway-08d77aa7'
+```
+
+Stop paying for it. Deallocating keeps the disk and the address and costs a few cents a day; deleting the
+resource group removes everything, the ledger included:
+
+```bash
+az vm deallocate -g groupcart -n groupcart
+```
 
 To try the site's "get your agent" form on a laptop, run the signup endpoint by itself in dry-run mode
 (it never calls Photon and hands back a made-up number):

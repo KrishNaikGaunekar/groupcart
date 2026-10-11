@@ -1,10 +1,12 @@
 # Hosted plan: "here's your agent's number, just text it"
 
-Status: partly built. The website is hosted on Vercel at <https://groupcart-beta.vercel.app>. The
-signup endpoint exists and is tested on a laptop, but the backend is **not hosted yet**: the Azure for
-Students subscription lapsed on Sept 20 and has to be renewed (or another subscription opened) before a
-VM can be created. Until then the site's form reports that the agents cannot be reached. Pieces marked
-*exists* are in the repo.
+Status: **hosted since Oct 11.** The website is on Vercel at <https://groupcart-beta.vercel.app> and the
+gateway and signup endpoint run on one Azure VM. How to operate it is in
+[SETUP.md](SETUP.md#the-hosted-backend). What follows is the original plan, with each part marked where
+it was built or done differently.
+
+**While the hosted gateway is up, nobody runs `./gc gateway run` or `app/spectrum-bot` on a laptop.**
+Only one process may hold the Photon project's message stream; a second one steals texts from the first.
 
 ## The experience
 
@@ -62,6 +64,11 @@ in their dashboard by whoever owns the project).
   proxy for HTTPS. A VM is simpler than a serverless container service here because the runtime holds a
   long-lived connection and needs a disk. Rough cost from memory is a few tens of dollars a month, well
   inside $300 of credits; check current pricing before committing.
+  *Built without Docker:* a `Standard_B2s` Ubuntu 24.04 VM in Canada Central (the student subscription
+  only allows five regions, and the small sizes are only offered to it there). The repo is cloned onto
+  it, `scripts/setup.sh` provisions it exactly as on a laptop, the runtime's own `gateway install` makes
+  it a systemd service, and Caddy from apt terminates HTTPS. No image, no compose file, nothing to build.
+  It is roughly $1.30 a day against the $100 student credit.
 - **Exactly one runtime replica.** Only one process may hold a Photon project's message stream. Never autoscale it.
 - **Persistent disk** for `.groupcart-home`. Losing it loses the ledger and the vault key.
 - **Secrets as environment variables on the VM**, never in the image or the repo.
@@ -69,9 +76,10 @@ in their dashboard by whoever owns the project).
 ## Build steps
 
 1. **Prove the live path first.** One real text in, one reply out, one agent texting a second person.
-   Still unverified; everything below depends on it.
+   Still unverified on the hosted gateway: it connects to Photon and stays connected across a reboot, but
+   nobody has texted it yet.
 2. **Dockerfile** for this repo: runtime-only install, plugins linked, `app/runtime/config.yaml` baked in.
-   `core/` ships its own Dockerfile to start from. Untested.
+   `core/` ships its own Dockerfile to start from. *Not needed:* see above.
 3. **Signup API**: one endpoint wrapping the same call as `scripts/photon_users.py`, which also writes the
    person's name into the ledger so the agent greets them by name. *Exists:* `app/split/signup.py`. It
    runs inside the gateway when `GROUPCART_SIGNUP_PORT` is set in `.env`, listens on localhost only, and
@@ -79,15 +87,14 @@ in their dashboard by whoever owns the project).
 4. **Azure VM**, Compose file, disk, HTTPS.
 5. **Website**: one form, one result screen. Tap-to-text is an `sms:` link. *Exists:* the "get your
    agent" box on the home page (`site/js/signup.js`). It calls `/api/signup` and `/api/health`, which the
-   host has to forward to the backend: once the VM has an HTTPS address, add a `site/vercel.json` with one
-   rewrite from `/api/:path*` to it and redeploy.
+   host has to forward to the backend. *Done:* `site/vercel.json` rewrites `/api/:path*` to the VM.
 6. **Gemini capacity**: billing on, or several keys. The free tier is about 20 requests a day per model.
 
 ## Things to decide
 
 - **Abuse.** The form spends a limited user slot and our Gemini quota for anyone who finds it. Gate it
   with a hackathon invite code until capacity is sorted. *Done:* the endpoint needs the invite code and
-  allows six tries a minute per address.
+  allows 30 requests a minute per visitor and 240 a minute overall.
 - **Phone ownership.** Someone can enter a number that is not theirs. Low harm (the agent only replies to
   people who text it first), but it burns a slot. A texted confirmation code fixes it later.
 - **Contact card.** Two ways to make the agent show up as "Minion" with a picture: a downloadable contact
