@@ -44,6 +44,11 @@ umask 077
     echo "GEMINI_API_KEY=${GEMINI_KEYS[0]:-}"
     [ -n "${GEMINI_KEYS[1]:-}" ] && echo "GOOGLE_API_KEY=${GEMINI_KEYS[1]}"
     echo "NESSIE_API_KEY=${NESSIE_API_KEY:-}"
+    # The website's signup endpoint (app/split/signup.py). Off unless a port is set.
+    [ -n "${GROUPCART_SIGNUP_PORT:-}" ] && echo "GROUPCART_SIGNUP_PORT=${GROUPCART_SIGNUP_PORT}"
+    [ -n "${GROUPCART_INVITE_CODE:-}" ] && echo "GROUPCART_INVITE_CODE=${GROUPCART_INVITE_CODE}"
+    [ -n "${GROUPCART_SIGNUP_DRY_RUN:-}" ] && echo "GROUPCART_SIGNUP_DRY_RUN=${GROUPCART_SIGNUP_DRY_RUN}"
+    true
 } > "$GROUPCART_HOME/.env"
 chmod 600 "$GROUPCART_HOME/.env"
 

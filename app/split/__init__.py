@@ -16,3 +16,8 @@ def register(ctx) -> None:
                          description="Show what the agents said to each other about your latest split")
     ctx.register_cli_command(name="split", help="Inspect GroupCart splits: the agents' room, people, outbox",
                              setup_fn=cli.setup, handler_fn=cli.dispatch)
+
+    # The website's signup endpoint rides along with the gateway when GROUPCART_SIGNUP_PORT is set.
+    from . import signup
+
+    signup.start_with_gateway()
