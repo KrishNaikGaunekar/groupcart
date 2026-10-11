@@ -20,6 +20,7 @@ and tip — plus a way to pay. Built at HackNC 2026 (Oct 10–11).
 | `app/spectrum-bot/` | **Ours.** The first version: a TypeScript shopping-cart bot talking to Spectrum directly, with in-bot groups. [Its README](app/spectrum-bot/README.md) |
 | `vault/cardvault/` | **Ours.** Card intake over text and the checkout gate, on top of the runtime's vault |
 | `site/` | **Ours.** The website: static pages, a replay of the demo dinner, a calculator running the same share math |
+| `video/` | **Ours.** Motion graphics for the demo video, made with Remotion. [Shot list](video/README.md) |
 | `core/` | Vendored open-source agent runtime (see below). Not edited by hand |
 | `docs/` | Architecture, the split protocol, the vault, setup, hackathon rules |
 | `scripts/` | Setup and the script that vendors `core/` |

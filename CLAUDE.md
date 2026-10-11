@@ -36,6 +36,7 @@ Read in this order. When two sources disagree, the higher one wins.
 | `app/spectrum-bot/` | Ours | The original TypeScript Spectrum bot. Kept working; not where new work goes |
 | `vault/cardvault/` | Ours | Card intake over text, per-person scoping, checkout gate |
 | `site/` | Ours | The website: static HTML, one stylesheet, plain scripts. No build step, no dependencies |
+| `video/` | Ours | Motion graphics for the demo video (Remotion). `video/render.sh` writes the clips to `video/out/`, which is not committed |
 | `core/` | Vendored | Hermes Agent, renamed GroupCart. **Never hand-edit.** Change it only via `core-patches/` |
 | `scripts/` | Ours | `setup.sh`, `demo_cli.sh`, `site.sh`, `minion_sprite.py`, `rebrand_core.py` |
 | `gc` | Ours | Launcher: runs the runtime against `.groupcart-home/` |
