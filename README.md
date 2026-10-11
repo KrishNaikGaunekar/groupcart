@@ -1,70 +1,67 @@
 # GroupCart
 
-An iMessage shopping agent built on Photon Spectrum. Text it what you want, or add it to a group chat.
-It finds the item at Amazon, Walmart or Target, builds a shared cart, splits the bill, collects
-everyone's share, and only checks out once everyone has paid.
+Group shopping over iMessage. Text GroupCart what you want and it finds it at Amazon and Walmart, builds a
+cart your friends can add to, splits the bill (shared items evenly, personal items to whoever wanted them,
+tax and shipping in proportion), collects everyone's share through Capital One, and only checks out once
+everyone has paid.
 
-Built at HackNC 2026 (Oct 10–11). All code was written during the hackathon.
+Built at HackNC 2026 (Oct 10–11). All code in this repo was written during the hackathon.
+
+- **iMessage** through [Photon Spectrum](https://photon.codes/spectrum) (`spectrum-ts`)
+- **Gemini** runs the agent: a tool-calling loop over search, cart, split and payment tools
+- **Capital One Nessie**: every member gets a sandbox checking account and every group gets a pool account.
+  Shares move member → pool, then the pool pays each retailer
+- **SerpAPI** for live Amazon and Walmart results
+
+## How it works
+
+Every chat with GroupCart is personal by default. Groups live in the bot, because Photon's shared numbers
+can't join real iMessage group chats. Each person texts GroupCart 1:1, and naming a group acts for everyone in it.
+
+| Text | What happens |
+|---|---|
+| `find a lightning charger under $15` | options arrive as separate messages |
+| 👍 / ❤️ an option, or reply `this one` | added to the cart for whoever reacted |
+| reply `remove` to an option | taken back out |
+| `start group movie night` | creates the group and replies with a join code (e.g. `MOVI2`) |
+| `add 919-555-1234 to movie night` | texts that friend in (or they text `join MOVI2`) |
+| `movie night find popcorn` | the whole group sees the request, the options and the replies |
+| `movie night split the drinks, popcorn is mine` | marks items shared/personal and shows each person's total |
+| `movie night pay` | sends everyone their own "you owe" and pays your share |
+| 👍 your "you owe", or text `pay` | pays from your Nessie account. The last payment places the order |
+| `movie night what's in the cart` | live cart, including items added by reactions |
+| `groups` · `leave movie night` · `delete group movie night` · `movie night reset` | manage groups and carts |
+
+Android/SMS friends work too: their "Liked …" reactions arrive as text and are matched to the option.
 
 ## Run
 
 ```bash
 npm install
-cp .env.example .env     # fill in what you have; everything else falls back to mocks
+cp .env.example .env     # fill in what you have; anything blank falls back to mocks
 npm run dev
 ```
 
-- With no `SPECTRUM_*` credentials, it runs in **terminal mode** (Spectrum's TUI). Use `Ctrl+N` for a new chat.
-  A chat whose id contains "group" is treated as a group. Type `/as Sam` to speak as another member, and say "cart ..." to address the bot.
-- With credentials, it runs on **iMessage** through Photon's managed lines. Set `MODE=both` to keep the TUI as well.
-- Payments go through **Capital One Nessie** when `NESSIE_API_KEY` is set: each member gets a $500 mock checking account, each chat gets a pool account. 👍 your "you owe" message (or text "pay") to move your share into the pool; when everyone's in, the pool makes a Nessie purchase at each retailer. Without a key, payments are simulated.
-- The agent runs on **Claude Haiku 4.5** when `ANTHROPIC_API_KEY` is set, otherwise on **Gemini**. The startup line prints which LLM, search and payment backends are live.
-- `npm run smoke` runs a scripted conversation against the real agent (no Spectrum needed).
-- State API: `http://localhost:3077/api/state`.
-
-## User testing
-
-Before a session:
-1. `.env` has `ANTHROPIC_API_KEY` (Haiku) and `SERPAPI_KEY` (real products). Check the startup line says `search: serpapi`, not `MOCK`.
-2. Start fresh: move `data/state.json` and `data/bank.json` into a `data/backup-*` folder (delete or move both together, or the Nessie accounts go out of sync).
-3. `npm run dev` and keep that terminal open for the whole session.
-
-**Groups on Photon's shared pool.** Shared-pool projects can't join real iMessage group chats, so groups live in the bot.
-Every chat with GroupCart is **personal by default**; you act for a group by naming it.
-- `start group movie night` gives a code (e.g. `MOVI2`). `add 919-555-1234` texts a friend in, or they text their GroupCart `join MOVI2`.
-- `cart movie night find pillows` (or `@movie night …`, `movie night: …`) acts on that group: everyone in it sees the request, the options and the replies. You can be in several groups.
-- Likes and replies act on whichever cart the message came from. Reply "remove" to an option to take it out (un-liking isn't delivered by Photon).
-- `cart movie night collect payments` sends each person their own "you owe"; they 👍 it or text `pay`.
-- `reset` clears your personal cart; `cart movie night reset` clears the group's. `groups` lists your groups, `leave movie night` exits, `delete group movie night` deletes it for everyone (creator only).
-- Groups persist in `data/parties.json` (clear it with the other state files).
-
-Tell testers:
-- **Group chat:** start every message with "cart", e.g. "cart find snacks for movie night under $20". In a 1:1 chat, no prefix needed.
-- 👍 an option to add it to the cart. Say "cart split it" to see shares, then "cart collect payments".
-- Everyone 👍s their own "you owe" message (or texts "pay"). The last payment places the order.
-- Everyone starts with a $500 sandbox balance; no real money moves.
-
-Watch for: reply time, whether people find the 👍 step on their own, whether the split amounts make sense, and anything the bot misreads.
+- With `SPECTRUM_PROJECT_ID`/`SECRET`, it runs on iMessage through Photon. Without them it runs in Spectrum's
+  terminal UI (`Ctrl+N` for a new chat, `/as Sam` to speak as someone else).
+- `GEMINI_API_KEYS` runs the agent on Gemini. Comma-separate several keys to raise the free-tier rate limit;
+  on a rate limit it falls back through a chain of Gemini models. (Optional: `ANTHROPIC_API_KEY` switches
+  the agent to Claude Haiku 4.5.)
+- `NESSIE_API_KEY` turns on real sandbox money movement; without it payments are simulated.
+- `SERPAPI_KEY` gives live products; without it search returns mock items.
+- The startup line prints which LLM, search and payment backends are live. State is in `data/`;
+  `http://localhost:3077/api/state` shows it as JSON.
+- `npm run smoke` runs a scripted conversation against the agent without Spectrum.
 
 ## Layout
 
-| File | What | Owner worktree |
-|---|---|---|
-| `src/types.ts` | shared contracts (change only on main) | — |
-| `src/index.ts` | Spectrum app, routing, tapbacks, payment poller | agent |
-| `src/agent.ts` | system prompt + tool definitions | agent |
-| `src/llm.ts` | LLM adapter: Claude Haiku 4.5 or Gemini (tool loop) | agent |
-| `src/tools/commerce.ts` | SerpAPI search, checkout links | commerce |
-| `src/tools/payments.ts` | split math, pay share, pay retailers | payments |
-| `src/tools/bank.ts` | Nessie client (accounts, transfers, purchases, ledger balance) | payments |
-| `src/server.ts` | mock pay pages, `/api/state`, dashboard | payments |
-
-## Hackathon compliance checklist
-- [ ] Devpost submission by **10:00 AM EST Sun Oct 11**, with exactly one project per team
-- [ ] Public **GitHub link** to all code written for the hack
-- [ ] **Demo video, 2 minutes max**, mentioning sponsor tech (Photon Spectrum, Gemini)
-- [ ] For judging, clear `ANTHROPIC_API_KEY` so the agent runs on Gemini (needed for the MLH Gemini prize)
-- [ ] Choose **General** (or Beginner) track, plus: Best iMessage Agent with Photon, MLH Best Use of Gemini API, Capital One Best Use of Nessie (4 prizes max per team)
-- [ ] Spectrum integration (required for the Photon prize) ✓ `spectrum-ts`
-- [ ] Nothing built before hacking started; no cross-posting
-- [ ] Someone at the table 12:00–1:30 PM for judging (4 minutes per judge: a 2-minute demo plus 2 minutes of Q&A)
+| File | What |
+|---|---|
+| `src/index.ts` | Spectrum app: message routing, reactions, threaded replies, group commands, "pay" |
+| `src/party.ts` | groups: create, join, add, leave, delete, and matching a message to a group |
+| `src/agent.ts` | system prompt and tools (search, cart, split, request payments, pay, balance) |
+| `src/llm.ts` | tool-calling loop for Gemini (with model and key fallback) and Claude |
+| `src/tools/commerce.ts` | SerpAPI Amazon/Walmart search, retailer cart links |
+| `src/tools/payments.ts` | split math, paying a share, paying retailers |
+| `src/tools/bank.ts` | Nessie client: customers, accounts, transfers, purchases, ledger balance |
+| `src/store.ts`, `src/server.ts` | persisted state and the state API |
