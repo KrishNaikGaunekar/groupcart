@@ -5,3 +5,6 @@ dist
 
 # Ignore the output video from Git but not videos you import into src/.
 out
+
+# The camera recordings (footage/, and public/footage/ made from them) are too big for git.
+footage

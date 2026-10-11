@@ -15,6 +15,11 @@ const within = (frame: number, spans: [number, number][] = []) => spans.some(([a
 
 export const MINION = { width: 136, height: 142 }; // the sprite with room around it to jump and wave
 
+/** The frame the minion idles on (its bob, blinks and talking mouth), when that should not be the
+ *  clip's own frame: a clip that is slowed, held or sped up to fit speech keeps a minion that
+ *  moves at normal speed. Without a provider it is the current frame. */
+export const IdleClock = React.createContext<number | null>(null);
+
 export const Minion: React.FC<{
   scale?: number;
   wave?: [number, number][]; // frame ranges it waves in
@@ -24,12 +29,13 @@ export const Minion: React.FC<{
   style?: React.CSSProperties;
 }> = ({ scale = 2, wave, talk, jumps = [], look = [0, 0], style }) => {
   const frame = useCurrentFrame();
-  const beat = Math.floor((frame / 30) * 12) / 12;
+  const idle = React.useContext(IdleClock) ?? frame;
+  const beat = Math.floor((idle / 30) * 12) / 12;
   let lift = Math.sin(beat * 2.6) > 0.25 ? 1 : 0;
   let armL = within(frame, wave) ? Math.sin(beat * 11) * 0.36 - 0.06 : Math.sin(beat * 2.6 + 1) * 0.06;
   let armR = Math.sin(beat * 2.6) * 0.07;
   let legL = 0, legR = 0, sx = 1, sy = 1, mouth = 1;
-  if (within(frame, talk)) mouth = [1, 0.5, 0.9, 0.3, 0.7, 0.4, 1.1, 0.6][Math.floor((frame / 30) * 11) % 8];
+  if (within(frame, talk)) mouth = [1, 0.5, 0.9, 0.3, 0.7, 0.4, 1.1, 0.6][Math.floor((idle / 30) * 11) % 8];
   for (const start of jumps) {
     const u = (frame - start) / 24;
     if (u < 0 || u >= 1) continue;
@@ -45,7 +51,7 @@ export const Minion: React.FC<{
       sx = 1 + 0.08 * a;
     }
   }
-  const blink = (frame + 61) % 97 < 3;
+  const blink = (Math.floor(idle) + 61) % 97 < 3;
   const turn: Record<string, number> = { armL: snap(armL), armR: snap(armR), legL: snap(legL), legR: snap(legR) };
 
   const part = (name: string, extra: React.CSSProperties = {}) => {

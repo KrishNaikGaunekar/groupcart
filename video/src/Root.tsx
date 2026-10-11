@@ -3,6 +3,7 @@ import { Composition, Series } from "remotion";
 import "./fonts";
 import { Outro, OUTRO, TITLE, TitleCard } from "./clips/pages";
 import { ANDROID, AndroidToo, GROUPS, GroupsRelay, MONEY, MoneyFlow, PIPELINE, Pipeline, SPLIT, SplitCard } from "./clips/panels";
+import { FINAL_FRAMES, Final } from "./final/Final";
 import { HOOK, Hook, STEP_ONE, STEP_THREE, STEP_TWO, StepOne, StepThree, StepTwo } from "./clips/phones";
 import { Footage } from "./Site";
 import { FPS, H, W } from "./theme";
@@ -45,6 +46,7 @@ export const RemotionRoot: React.FC = () => (
     {CLIPS.map((clip) => (
       <Composition key={clip.id} id={clip.id} component={clip.component} durationInFrames={clip.frames} fps={FPS} width={W} height={H} />
     ))}
+    <Composition id="final" component={Final} durationInFrames={FINAL_FRAMES} fps={FPS} width={W} height={H} />
     <Composition id="00-preview" component={Preview} durationInFrames={CLIPS.reduce((sum, clip) => sum + clip.frames, 0)} fps={FPS} width={W} height={H} />
   </>
 );

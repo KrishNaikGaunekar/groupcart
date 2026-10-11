@@ -10,8 +10,8 @@ import { ASK, OFFERS, added, youOwe } from "./story";
    from the bottom, the minion says which step this is, and both leave at the end. The phone is
    an accurate iPhone; only the minion and its bubble wear the website's look. */
 
-const PHONE = { width: 500, height: 990 };
-const groupcart = <LogoAvatar size={PHONE.width * 0.105} />;
+export const PHONE = { width: 500, height: 990 };
+export const groupcart = <LogoAvatar size={PHONE.width * 0.105} />;
 
 const PhoneClip: React.FC<{ total: number; say?: string; jumps?: number[]; chat: Omit<ChatProps, "width" | "height"> }> = ({ total, say, jumps = [], chat }) => (
   <AbsoluteFill>
