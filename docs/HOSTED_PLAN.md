@@ -1,13 +1,14 @@
 # Hosted plan: "here's your agent's number, just text it"
 
-Status: **hosted since Oct 11.** The website is on Vercel at <https://groupcart-beta.vercel.app> and one
-Azure VM holds our Photon project. How to operate it is in [SETUP.md](SETUP.md#the-hosted-backend). What
+Status: **hosted for the hackathon on Oct 11, and taken down that evening.** The website is still on
+Vercel at <https://groupcart-beta.vercel.app>; the Azure VM that held our Photon project was deleted after
+judging. How it was run, and how to bring it back, is in [SETUP.md](SETUP.md#the-hosted-backend). What
 follows is the original plan, with each part marked where it was built or done differently.
 
-**What answers texts on that VM right now is the TypeScript bot** (`app/spectrum-bot`), not the
+**What answered texts on that VM was the TypeScript bot** (`app/spectrum-bot`), not the
 receipt-splitting gateway this plan was written for. William switched it over at 2:10 AM on Oct 11 to put
-Krish's in-bot groups live. The gateway is installed on the VM and disabled; one command in SETUP.md
-swaps them. The signup endpoint runs as its own service so the website's form works with either. The
+Krish's in-bot groups live. The gateway was installed on the VM and disabled; one command in SETUP.md
+swapped them. The signup endpoint ran as its own service so the website's form worked with either. The
 website still describes receipt splitting.
 
 **While the VM is up, nobody runs `./gc gateway run` or `app/spectrum-bot` against that Photon project on

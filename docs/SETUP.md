@@ -38,8 +38,8 @@ GROUPCART_SPLIT_DRY_RUN=1 GROUPCART_SESSION_USER_ID=+19195550001 ./gc chat
 ./gc gateway run
 ```
 
-Wait for `✓ photon connected`. **Not while the [hosted backend](#the-hosted-backend) is running** on the
-same Photon project: stop that first.
+Wait for `✓ photon connected`. Nothing else may be using the same Photon project while it runs. (The
+[hosted backend](#the-hosted-backend) that used to was deleted on Oct 11.)
 
 **Give each person an agent first.** On Photon's shared lines nobody can reach the agent until their
 phone number is registered on the project. Registering assigns them their own number to text:
@@ -90,12 +90,21 @@ what is left out, and `site/vercel.json` forwards `/api` to the hosted backend b
 
 ## The hosted backend
 
-One Azure VM holds our Photon project, so **do not run `./gc gateway run` or the TypeScript bot against
-that project on a laptop while it is up** (one consumer per Photon project).
+**Deleted on Oct 11, 2026, in the evening after judging**, so it stops using the student credit:
+`az group delete --name groupcart`, then the same for the `NetworkWatcherRG` Azure had made beside it.
+Nothing of ours is left in the subscription. Until someone runs the bot or the gateway again, texts to
+the agent's number get no answer and the site's "get your agent" form says the agents cannot be reached.
+The few small files that existed only on the VM (the ledger and the runtime's databases, the two service
+files) are in `.groupcart-home/azure-vm-state-2026-10-11.tgz` on William's laptop, which is not in git.
 
-Since Oct 11, 2:10 AM it runs **the TypeScript bot** (`app/spectrum-bot`: shopping cart, in-bot groups),
-not the receipt-splitting gateway. The gateway is still installed on the VM, switched off. The website's
-signup runs as its own small service either way.
+What follows is how it was set up and run, for bringing it back.
+
+One Azure VM held our Photon project, so nobody ran `./gc gateway run` or the TypeScript bot against
+that project on a laptop while it was up (one consumer per Photon project).
+
+From Oct 11, 2:10 AM it ran **the TypeScript bot** (`app/spectrum-bot`: shopping cart, in-bot groups),
+not the receipt-splitting gateway. The gateway was installed on the VM too, switched off. The website's
+signup ran as its own small service either way.
 
 | | |
 |---|---|
@@ -147,11 +156,16 @@ service has to stop with the bot:
 ssh groupcart-azure 'systemctl --user disable --now groupcart-bot groupcart-signup && systemctl --user enable --now groupcart-gateway-08d77aa7'
 ```
 
-Stop paying for it. Deallocating keeps the disk and the address and costs a few cents a day; deleting the
-resource group removes everything:
+Stop paying for it. Deallocating keeps the disk and the address and costs a few cents a day:
 
 ```bash
 az vm deallocate -g groupcart -n groupcart
+```
+
+Deleting the resource group removes everything, for good. This is what was done on Oct 11:
+
+```bash
+az group delete --name groupcart
 ```
 
 To try the site's "get your agent" form on a laptop, run the signup endpoint by itself in dry-run mode
